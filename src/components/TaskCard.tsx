@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Clock, 
   FolderCheck, 
@@ -9,9 +9,12 @@ import {
   RotateCcw,
   Edit3, 
   Trash2, 
-  Copy
+  Copy,
+  GripVertical,
+  Flame,
+  AlertTriangle
 } from 'lucide-react';
-import { PoliceTask, PoliceTaskStatus } from '../types';
+import { PoliceTask, PoliceTaskPriority, PoliceTaskStatus } from '../types';
 import { POLICE_TASK_CATEGORIES, STATUS_CONFIG } from '../data/policeTemplates';
 
 interface TaskCardProps {
@@ -21,6 +24,7 @@ interface TaskCardProps {
   onQuickStatus: (task: PoliceTask, status: PoliceTaskStatus) => void;
   onReplicate?: (task: PoliceTask) => void;
   compact?: boolean;
+  onDropOnTask?: (sourceTaskId: string, targetTaskId: string) => void;
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({
@@ -30,44 +34,106 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   onQuickStatus,
   onReplicate,
   compact = false,
+  onDropOnTask,
 }) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const [isDragTarget, setIsDragTarget] = useState(false);
+
   const categoryInfo = POLICE_TASK_CATEGORIES.find((c) => c.id === task.category) || POLICE_TASK_CATEGORIES[POLICE_TASK_CATEGORIES.length - 1];
   const statusInfo = STATUS_CONFIG[task.status] || STATUS_CONFIG.pendente;
 
-  const priorityColors = {
-    baixa: 'text-slate-400 bg-slate-800/80 border-slate-700',
-    media: 'text-blue-300 bg-blue-950/40 border-blue-800/60',
-    alta: 'text-amber-300 bg-amber-950/40 border-amber-800/60 font-semibold',
-    urgente: 'text-rose-300 bg-rose-950/60 border-rose-700/80 font-black animate-pulse',
+  // Progressive Priority Glow based on status color
+  const getPriorityGlow = (priority: PoliceTaskPriority, status: PoliceTaskStatus) => {
+    // Baixa: no glow, flat discrete border
+    if (priority === 'baixa') {
+      switch (status) {
+        case 'concluida':
+          return 'border-emerald-900/60 bg-emerald-950/20 shadow-none';
+        case 'em_andamento':
+          return 'border-blue-900/60 bg-blue-950/20 shadow-none';
+        case 'remarcada':
+          return 'border-purple-900/60 bg-purple-950/20 shadow-none';
+        case 'nao_feita':
+          return 'border-rose-900/60 bg-rose-950/20 shadow-none';
+        case 'pendente':
+        default:
+          return 'border-slate-700/80 bg-slate-900/90 shadow-none';
+      }
+    }
+
+    // Media: subtle border matching status with soft ambient shadow
+    if (priority === 'media') {
+      switch (status) {
+        case 'concluida':
+          return 'border-emerald-500/60 bg-emerald-950/25 shadow-sm shadow-emerald-950/40 hover:border-emerald-400';
+        case 'em_andamento':
+          return 'border-blue-500/60 bg-blue-950/25 shadow-sm shadow-blue-950/40 hover:border-blue-400';
+        case 'remarcada':
+          return 'border-purple-500/60 bg-purple-950/25 shadow-sm shadow-purple-950/40 hover:border-purple-400';
+        case 'nao_feita':
+          return 'border-rose-500/60 bg-rose-950/25 shadow-sm shadow-rose-950/40 hover:border-rose-400';
+        case 'pendente':
+        default:
+          return 'border-amber-500/50 bg-slate-900/95 shadow-sm shadow-amber-950/40 hover:border-amber-400';
+      }
+    }
+
+    // Alta: prominent glowing border, ring-1, solid drop glow matching status
+    if (priority === 'alta') {
+      switch (status) {
+        case 'concluida':
+          return 'border-emerald-400 ring-1 ring-emerald-400/50 bg-emerald-950/30 shadow-md shadow-emerald-500/30 hover:border-emerald-300';
+        case 'em_andamento':
+          return 'border-blue-400 ring-1 ring-blue-400/50 bg-blue-950/30 shadow-md shadow-blue-500/30 hover:border-blue-300';
+        case 'remarcada':
+          return 'border-purple-400 ring-1 ring-purple-400/50 bg-purple-950/30 shadow-md shadow-purple-500/30 hover:border-purple-300';
+        case 'nao_feita':
+          return 'border-rose-400 ring-1 ring-rose-400/50 bg-rose-950/30 shadow-md shadow-rose-500/30 hover:border-rose-300';
+        case 'pendente':
+        default:
+          return 'border-amber-400 ring-1 ring-amber-400/50 bg-slate-900 shadow-md shadow-amber-500/30 hover:border-amber-300';
+      }
+    }
+
+    // Urgente: Cintilante e brilhante! Animated pulsating aura, 2px glowing border, high-intensity sheen matching status!
+    switch (status) {
+      case 'concluida':
+        return 'border-emerald-400 ring-2 ring-emerald-400/80 bg-emerald-950/40 glow-urgent-concluida hover:border-emerald-200';
+      case 'em_andamento':
+        return 'border-blue-400 ring-2 ring-blue-400/80 bg-blue-950/40 glow-urgent-em_andamento hover:border-blue-200';
+      case 'remarcada':
+        return 'border-purple-400 ring-2 ring-purple-400/80 bg-purple-950/40 glow-urgent-remarcada hover:border-purple-200';
+      case 'nao_feita':
+        return 'border-rose-400 ring-2 ring-rose-400/80 bg-rose-950/40 glow-urgent-nao_feita hover:border-rose-200';
+      case 'pendente':
+      default:
+        return 'border-amber-400 ring-2 ring-amber-400/80 bg-slate-900 glow-urgent-pendente hover:border-amber-200';
+    }
   };
 
-  // Dedicated status visual theme
+  // Dedicated status indicator colors
   const getStatusTheme = (status: PoliceTaskStatus) => {
     switch (status) {
       case 'concluida':
         return {
-          container: 'border-emerald-500/60 bg-emerald-950/20 hover:border-emerald-400 shadow-emerald-950/20',
           indicator: 'bg-emerald-500',
           title: 'line-through text-slate-400',
           badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
         };
       case 'em_andamento':
         return {
-          container: 'border-blue-500/80 bg-blue-950/30 hover:border-blue-400 shadow-blue-950/40 ring-1 ring-blue-500/20',
           indicator: 'bg-blue-400 animate-pulse',
           title: 'text-white font-bold',
           badge: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
         };
       case 'remarcada':
         return {
-          container: 'border-purple-500/70 bg-purple-950/25 hover:border-purple-400 shadow-purple-950/30',
           indicator: 'bg-purple-400',
           title: 'text-slate-200',
           badge: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
         };
       case 'nao_feita':
         return {
-          container: 'border-rose-500/70 bg-rose-950/25 hover:border-rose-400 shadow-rose-950/30',
           indicator: 'bg-rose-400',
           title: 'text-rose-200',
           badge: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
@@ -75,7 +141,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       case 'pendente':
       default:
         return {
-          container: 'border-amber-500/40 bg-slate-900/95 hover:border-amber-500/70 shadow-slate-950/50',
           indicator: 'bg-amber-400',
           title: 'text-white',
           badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
@@ -84,11 +149,84 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   };
 
   const statusTheme = getStatusTheme(task.status);
+  const glowClasses = getPriorityGlow(task.priority, task.status);
+
+  // Drag and Drop handlers
+  const handleDragStart = (e: React.DragEvent) => {
+    setIsDragging(true);
+    e.dataTransfer.setData('text/plain', task.id);
+    e.dataTransfer.setData('application/json', JSON.stringify({ id: task.id, date: task.date }));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (!isDragTarget) setIsDragTarget(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragTarget(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragTarget(false);
+    const sourceTaskId = e.dataTransfer.getData('text/plain');
+    if (sourceTaskId && sourceTaskId !== task.id && onDropOnTask) {
+      onDropOnTask(sourceTaskId, task.id);
+    }
+  };
+
+  const priorityBadge = () => {
+    switch (task.priority) {
+      case 'urgente':
+        return (
+          <span className="inline-flex items-center gap-1 text-[9px] uppercase font-black text-rose-200 bg-rose-950/90 border border-rose-500/80 px-1.5 py-0.5 rounded shadow-sm animate-pulse">
+            <Flame className="w-2.5 h-2.5 text-rose-400" />
+            <span>Urgente</span>
+          </span>
+        );
+      case 'alta':
+        return (
+          <span className="inline-flex items-center gap-1 text-[9px] uppercase font-bold text-amber-300 bg-amber-950/70 border border-amber-500/60 px-1.5 py-0.5 rounded">
+            <AlertTriangle className="w-2.5 h-2.5 text-amber-400" />
+            <span>Alta</span>
+          </span>
+        );
+      case 'media':
+        return (
+          <span className="text-[9px] uppercase font-semibold text-blue-300 bg-blue-950/50 border border-blue-800/60 px-1.5 py-0.5 rounded">
+            Média
+          </span>
+        );
+      case 'baixa':
+      default:
+        return (
+          <span className="text-[9px] uppercase font-medium text-slate-400 bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded">
+            Baixa
+          </span>
+        );
+    }
+  };
 
   if (compact) {
     return (
       <div 
-        className={`p-2.5 rounded-xl border transition-all duration-150 shadow-sm relative overflow-hidden group ${statusTheme.container}`}
+        draggable
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`p-2.5 rounded-xl border transition-all duration-200 shadow-sm relative overflow-hidden group cursor-grab active:cursor-grabbing ${glowClasses} ${
+          isDragging ? 'opacity-40 scale-95 border-dashed border-amber-400' : ''
+        } ${isDragTarget ? 'ring-2 ring-amber-400 bg-amber-500/10' : ''}`}
       >
         {/* Status Indicator Stripe */}
         <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${statusTheme.indicator}`} />
@@ -96,14 +234,18 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         <div className="pl-1.5">
           <div className="flex items-center justify-between gap-1.5 mb-1.5">
             <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Drag Handle Icon Indicator */}
+              <span className="text-slate-500 group-hover:text-slate-300 transition" title="Arraste para reordenar ou mover de dia">
+                <GripVertical className="w-3 h-3" />
+              </span>
+
               {task.time && (
                 <span className="text-[10px] font-mono font-bold text-amber-400 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
                   {task.time}
                 </span>
               )}
-              <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border ${categoryInfo.badgeBg} ${categoryInfo.badgeText} ${categoryInfo.border}`}>
-                {categoryInfo.label.split(' ')[0]}
-              </span>
+              
+              {priorityBadge()}
             </div>
 
             <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border flex items-center gap-1 ${statusTheme.badge}`}>
@@ -115,6 +257,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           <h4 className={`text-xs font-semibold leading-snug mb-1 line-clamp-2 ${statusTheme.title}`}>
             {task.title}
           </h4>
+
+          {task.description && (
+            <p className="text-[11px] text-slate-400 line-clamp-1 mb-1 italic">
+              {task.description}
+            </p>
+          )}
 
           {task.procedureNumber && (
             <div className="text-[10px] font-mono text-amber-400/90 font-medium mb-1.5 truncate flex items-center gap-1">
@@ -220,10 +368,18 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     );
   }
 
-  // Full detailed card
+  // Full detailed card (used in Daily view or Tabela view)
   return (
     <div
-      className={`p-4 rounded-2xl border transition-all duration-150 shadow-md relative overflow-hidden ${statusTheme.container}`}
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`p-4 rounded-2xl border transition-all duration-200 shadow-md relative overflow-hidden group cursor-grab active:cursor-grabbing ${glowClasses} ${
+        isDragging ? 'opacity-40 scale-95 border-dashed border-amber-400' : ''
+      } ${isDragTarget ? 'ring-2 ring-amber-400 bg-amber-500/10' : ''}`}
     >
       {/* Visual Status Strip */}
       <div className={`absolute top-0 left-0 bottom-0 w-2 ${statusTheme.indicator}`} />
@@ -232,6 +388,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         {/* Top badges bar */}
         <div className="flex items-center justify-between gap-2 flex-wrap mb-2.5">
           <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-slate-500 group-hover:text-slate-300 transition" title="Arraste para reordenar ou mover de dia">
+              <GripVertical className="w-4 h-4" />
+            </span>
+
             {task.time && (
               <span className="inline-flex items-center gap-1 text-xs font-mono font-bold text-amber-400 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">
                 <Clock className="w-3.5 h-3.5" />
@@ -239,13 +399,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               </span>
             )}
 
-            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg border ${categoryInfo.badgeBg} ${categoryInfo.badgeText} ${categoryInfo.border}`}>
-              {categoryInfo.label}
-            </span>
+            {priorityBadge()}
 
-            <span className={`text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-lg border ${priorityColors[task.priority]}`}>
-              {task.priority === 'urgente' ? '⚠ Urgente' : `Prioridade ${task.priority}`}
-            </span>
+            {task.category && (
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg border ${categoryInfo.badgeBg} ${categoryInfo.badgeText} ${categoryInfo.border}`}>
+                {categoryInfo.label}
+              </span>
+            )}
           </div>
 
           {/* Current status pill */}
@@ -309,71 +469,64 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           </div>
         )}
 
-        {/* Notes / Certidão do servidor */}
-        {task.notes && task.status !== 'concluida' && (
-          <div className="mb-3 text-[11px] text-slate-400 bg-slate-950/60 p-2 rounded-lg border border-slate-800">
-            <span className="font-semibold text-slate-300">Certidão/Obs:</span> {task.notes}
-          </div>
-        )}
-
         {/* Action Buttons Bar */}
         <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2 flex-wrap">
-          {/* Status buttons with distinct colored palettes */}
+          {/* Quick status cycle buttons */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            {/* Concluir (Emerald) */}
             {task.status !== 'concluida' && (
               <button
                 type="button"
                 onClick={() => onQuickStatus(task, 'concluida')}
-                className="px-2.5 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 hover:text-emerald-200 text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                title="Marcar como Concluída"
+                className="px-2.5 py-1.5 bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 hover:text-emerald-100 border border-emerald-700/60 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
               >
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Concluir</span>
               </button>
             )}
 
-            {/* Em Andamento (Blue) */}
             {task.status !== 'em_andamento' && (
               <button
                 type="button"
                 onClick={() => onQuickStatus(task, 'em_andamento')}
-                className="px-2.5 py-1.5 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/40 text-blue-300 hover:text-blue-200 text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                title="Iniciar / Em Andamento"
+                className="px-2.5 py-1.5 bg-blue-950/40 hover:bg-blue-900/60 text-blue-300 hover:text-blue-100 border border-blue-700/60 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
               >
                 <PlayCircle className="w-3.5 h-3.5 text-blue-400" />
                 <span>Em Andamento</span>
               </button>
             )}
 
-            {/* Recolocar como Pendente (Amber) */}
             {task.status !== 'pendente' && (
               <button
                 type="button"
                 onClick={() => onQuickStatus(task, 'pendente')}
-                className="px-2.5 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 hover:text-amber-200 text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                title="Recolocar como Pendente"
+                className="px-2.5 py-1.5 bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 hover:text-amber-100 border border-amber-700/60 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
               >
                 <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
                 <span>Pendente</span>
               </button>
             )}
 
-            {/* Remarcar (Purple) */}
             {task.status !== 'remarcada' && (
               <button
                 type="button"
                 onClick={() => onQuickStatus(task, 'remarcada')}
-                className="px-2.5 py-1.5 bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/40 text-purple-300 hover:text-purple-200 text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                title="Remarcar para outra data"
+                className="px-2.5 py-1.5 bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 hover:text-purple-100 border border-purple-700/60 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
               >
                 <CalendarClock className="w-3.5 h-3.5 text-purple-400" />
                 <span>Remarcar</span>
               </button>
             )}
 
-            {/* Não Feita (Rose) */}
             {task.status !== 'nao_feita' && (
               <button
                 type="button"
                 onClick={() => onQuickStatus(task, 'nao_feita')}
-                className="px-2.5 py-1.5 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 hover:text-rose-200 text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                title="Justificar não realização"
+                className="px-2.5 py-1.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-100 border border-rose-700/60 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
               >
                 <XCircle className="w-3.5 h-3.5 text-rose-400" />
                 <span>Não Feita</span>
@@ -381,36 +534,35 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             )}
           </div>
 
-          {/* Edit, Replicate & Delete tools */}
-          <div className="flex items-center gap-1.5 ml-auto">
+          {/* Edit / Delete / Replicate actions */}
+          <div className="flex items-center gap-1.5">
             {onReplicate && (
               <button
                 type="button"
                 onClick={() => onReplicate(task)}
-                className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-amber-400 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1 transition"
-                title="Replicar Tarefa em Outros Dias"
+                title="Replicar em outros dias"
+                className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-xl transition border border-transparent hover:border-slate-700"
               >
-                <Copy className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Replicar</span>
+                <Copy className="w-4 h-4" />
               </button>
             )}
 
             <button
               type="button"
               onClick={() => onEdit(task)}
-              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-xl transition"
-              title="Editar Tarefa"
+              title="Editar Procedimento"
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition border border-transparent hover:border-slate-700"
             >
-              <Edit3 className="w-3.5 h-3.5" />
+              <Edit3 className="w-4 h-4" />
             </button>
 
             <button
               type="button"
               onClick={() => onDelete(task.id)}
-              className="p-2 bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 border border-slate-700 hover:border-rose-800/60 rounded-xl transition"
-              title="Excluir Tarefa"
+              title="Excluir Procedimento"
+              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 rounded-xl transition border border-transparent hover:border-rose-900/40"
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -418,5 +570,3 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     </div>
   );
 };
-
-

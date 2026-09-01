@@ -2,23 +2,21 @@ import React, { useState, useMemo } from 'react';
 import { 
   X, 
   Search, 
-  Plus, 
-  Calendar, 
-  Clock, 
+  Star, 
+  FilePlus, 
   FolderCheck, 
+  Clock, 
+  RotateCcw, 
+  CalendarCheck2, 
   Copy, 
-  Trash2, 
-  Bookmark,
-  CalendarCheck2,
+  Trash2,
+  Lock,
   Sparkles,
-  Layers,
-  ArrowRight,
-  Shield,
-  FilePlus,
-  Check,
-  Star
+  Flame,
+  AlertTriangle,
+  Layers
 } from 'lucide-react';
-import { PoliceTask, TaskTemplate, PoliceTaskCategory, PoliceTaskPriority } from '../types';
+import { PoliceTask, PoliceTaskCategory, PoliceTaskPriority, TaskTemplate } from '../types';
 import { POLICE_TASK_CATEGORIES } from '../data/policeTemplates';
 import { ConfirmModal } from './ConfirmModal';
 
@@ -28,9 +26,9 @@ interface ChooseTaskModalProps {
   targetDate: string;
   templates: TaskTemplate[];
   tasksHistory: PoliceTask[];
-  onSelectTaskToSchedule: (taskData: Omit<PoliceTask, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<void>;
-  onSelectTaskToReplicate: (task: TaskTemplate | PoliceTask) => void;
-  onAddNewTemplate: (templateData: Omit<TaskTemplate, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  onSelectTaskToSchedule: (task: Omit<PoliceTask, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<void>;
+  onSelectTaskToReplicate: (template: TaskTemplate) => void;
+  onAddNewTemplate: (template: Omit<TaskTemplate, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   onDeleteTemplate: (templateId: string) => Promise<void>;
   onToggleFavorite?: (templateId: string, isFavorite: boolean) => Promise<void>;
   onRestoreDefaults?: () => Promise<void>;
@@ -56,19 +54,16 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
   const [activeTab, setActiveTab] = useState<'catalogo' | 'historico'>('catalogo');
   const [showCreateForm, setShowCreateForm] = useState(false);
 
-  // In-app Confirmation Modal States (never blocked by iframes)
+  // In-app Confirmation Modal States
   const [templateToDelete, setTemplateToDelete] = useState<TaskTemplate | null>(null);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // New entry / template form state
+  // Simplified creation form state: Title, Description, Priority only
   const [newTitle, setNewTitle] = useState('');
-  const [newProcedure, setNewProcedure] = useState('');
-  const [newCategory, setNewCategory] = useState<PoliceTaskCategory>('oitiva');
-  const [newPriority, setNewPriority] = useState<PoliceTaskPriority>('alta');
-  const [newTime, setNewTime] = useState('09:00');
   const [newDescription, setNewDescription] = useState('');
+  const [newPriority, setNewPriority] = useState<PoliceTaskPriority>('alta');
   const [newIsFavorite, setNewIsFavorite] = useState(false);
   const [alsoScheduleDirectly, setAlsoScheduleDirectly] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -104,7 +99,7 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
     return templates.filter((t) => t.isFavorite).length;
   }, [templates]);
 
-  // Filter and sort templates (favorites pinned to the top)
+  // Filter and sort templates (favorites strictly pinned to the top)
   const filteredTemplates = useMemo(() => {
     const list = templates.filter((t) => {
       const matchesSearch = 
@@ -142,19 +137,19 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
     }).format(dateObj);
   })();
 
-  const handleScheduleTemplate = async (template: TaskTemplate | PoliceTask) => {
+  const handleScheduleTemplate = async (template: TaskTemplate) => {
     setSchedulingId(template.id);
     try {
       await onSelectTaskToSchedule({
         userId: template.userId,
         title: template.title,
         procedureNumber: template.procedureNumber || '',
-        category: template.category,
-        priority: template.priority,
+        category: template.category || 'outro',
+        priority: template.priority || 'media',
         date: targetDate,
         time: template.time || '09:00',
         description: template.description || '',
-        notes: template.notes || '',
+        notes: '',
       });
       onClose();
     } catch (err) {
@@ -164,8 +159,31 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
     }
   };
 
+  const handleScheduleHistorical = async (task: PoliceTask) => {
+    setSchedulingId(task.id);
+    try {
+      await onSelectTaskToSchedule({
+        userId: task.userId,
+        title: task.title,
+        procedureNumber: task.procedureNumber || '',
+        category: task.category,
+        priority: task.priority,
+        date: targetDate,
+        time: task.time || '09:00',
+        description: task.description || '',
+        notes: '',
+      });
+      onClose();
+    } catch (err) {
+      console.error('Error scheduling chosen task:', err);
+    } finally {
+      setSchedulingId(null);
+    }
+  };
+
+  // Safe delete handler: Favorite templates are strictly protected
   const handleConfirmDeleteSingle = async () => {
-    if (!templateToDelete) return;
+    if (!templateToDelete || templateToDelete.isFavorite) return;
     setActionLoading(true);
     try {
       await onDeleteTemplate(templateToDelete.id);
@@ -203,6 +221,7 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
     }
   };
 
+  // Simplified creation handler (Title, Description, Priority)
   const handleCreateNewEntry = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
@@ -213,10 +232,10 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
       await onAddNewTemplate({
         userId: '',
         title: newTitle.trim(),
-        procedureNumber: newProcedure.trim() || '',
-        category: newCategory,
+        procedureNumber: '',
+        category: 'outro',
         priority: newPriority,
-        time: newTime || '09:00',
+        time: '09:00',
         description: newDescription.trim() || '',
         isFavorite: newIsFavorite,
       });
@@ -226,11 +245,11 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
         await onSelectTaskToSchedule({
           userId: '',
           title: newTitle.trim(),
-          procedureNumber: newProcedure.trim() || '',
-          category: newCategory,
+          procedureNumber: '',
+          category: 'outro',
           priority: newPriority,
           date: targetDate,
-          time: newTime || '09:00',
+          time: '09:00',
           description: newDescription.trim() || '',
           notes: '',
         });
@@ -240,8 +259,8 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
 
       // Reset form
       setNewTitle('');
-      setNewProcedure('');
       setNewDescription('');
+      setNewPriority('alta');
       setNewIsFavorite(false);
       setShowCreateForm(false);
     } catch (err) {
@@ -259,193 +278,151 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
         {/* Block 1: Header Bar */}
         <div className="px-5 py-3.5 border-b border-slate-800 bg-slate-950 flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-400">
-              <Bookmark className="w-5 h-5" />
+            <div className="p-2 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-xl">
+              <Layers className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-white tracking-tight">
-                  Catálogo de Procedimentos e Modelos
-                </h2>
-                <span className="text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded">
-                  PCCE • 1ª DP
+                <h3 className="text-base font-bold text-white tracking-tight">
+                  Catálogo de Procedimentos
+                </h3>
+                <span className="text-[11px] font-bold text-amber-400 bg-amber-950/70 border border-amber-500/40 px-2 py-0.5 rounded-full capitalize">
+                  {formattedTargetDate || targetDate}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
-                <Calendar className="w-3.5 h-3.5 text-amber-400" />
-                <span>Dia selecionado para agendamento:</span>
-                <strong className="text-amber-300 capitalize">{formattedTargetDate}</strong>
+              <p className="text-xs text-slate-400">
+                Selecione um modelo oficial, reutilize procedimentos ou cadastre uma nova entrada simplificada.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Create New Entry Button */}
+            {/* Toggle create entry button inside the modal */}
             <button
+              type="button"
               onClick={() => setShowCreateForm(!showCreateForm)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm ${
                 showCreateForm
-                  ? 'bg-slate-800 text-slate-200 border border-slate-700'
-                  : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+                  ? 'bg-amber-400 text-slate-950 shadow-amber-500/20'
+                  : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40'
               }`}
             >
-              {showCreateForm ? (
-                <>
-                  <X className="w-4 h-4" />
-                  <span>Fechar Formulário</span>
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4" />
-                  <span>+ Criar Nova Entrada / Modelo</span>
-                </>
-              )}
+              <FilePlus className="w-4 h-4" />
+              <span>{showCreateForm ? 'Ocultar Formulário' : 'Criar Nova Entrada'}</span>
             </button>
 
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition border border-transparent hover:border-slate-700"
-              title="Fechar Catálogo"
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Block 2: Sub-Bar (Search, Filter Categories & Tabs) */}
-        <div className="px-5 py-3 bg-slate-950/60 border-b border-slate-800 space-y-2.5 shrink-0">
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
-            {/* Search Input */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar modelo por título, nº do procedimento ou roteiro..."
-                className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
-              />
-            </div>
-
-            {/* View Tabs (Modelos vs Histórico) */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setActiveTab('catalogo')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                  activeTab === 'catalogo'
-                    ? 'bg-amber-500 text-slate-950 shadow-sm'
-                    : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-                }`}
-              >
-                <Bookmark className="w-3.5 h-3.5" />
-                <span>Modelos Salvos ({filteredTemplates.length})</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('historico')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                  activeTab === 'historico'
-                    ? 'bg-amber-500 text-slate-950 shadow-sm'
-                    : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-                }`}
-              >
-                <Clock className="w-3.5 h-3.5" />
-                <span>Histórico de Tarefas ({uniqueHistoricalTasks.length})</span>
-              </button>
-            </div>
-
-            {/* Management Actions */}
-            {activeTab === 'catalogo' && (
-              <div className="flex items-center gap-2 text-xs">
-                {onRestoreDefaults && (
-                  <button
-                    type="button"
-                    onClick={() => setShowRestoreConfirm(true)}
-                    disabled={actionLoading}
-                    title="Restaurar os modelos padrão da Polícia Civil"
-                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-amber-400 border border-slate-800 hover:border-amber-500/30 rounded-xl text-[11px] font-semibold flex items-center gap-1 transition disabled:opacity-50"
-                  >
-                    <Sparkles className="w-3 h-3" />
-                    <span>Restaurar Padrões</span>
-                  </button>
-                )}
-                {onDeleteAllTemplates && templates.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowDeleteAllConfirm(true)}
-                    disabled={actionLoading}
-                    title="Limpar todos os modelos salvos"
-                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-rose-950/40 text-slate-400 hover:text-rose-300 border border-slate-800 hover:border-rose-900/50 rounded-xl text-[11px] font-semibold flex items-center gap-1 transition disabled:opacity-50"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    <span>Limpar</span>
-                  </button>
-                )}
-              </div>
-            )}
+        {/* Block 2: Search, Category Filters & Actions Bar */}
+        <div className="px-5 py-3 border-b border-slate-800 bg-slate-900/90 flex flex-col md:flex-row items-center justify-between gap-3 shrink-0">
+          {/* Search Box */}
+          <div className="relative w-full md:w-80">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por título ou descrição..."
+              className="w-full pl-9 pr-3 py-1.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+            />
           </div>
 
-          {/* Category & Favorites Filter Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1 pb-0.5">
-            <button
-              onClick={() => setSelectedCategory('todos')}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition whitespace-nowrap ${
-                selectedCategory === 'todos'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                  : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-              }`}
-            >
-              Todas as Categorias
-            </button>
+          {/* View Tabs & Category Filters */}
+          <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto no-scrollbar">
+            <div className="flex bg-slate-950 p-0.5 rounded-xl border border-slate-800 shrink-0">
+              <button
+                type="button"
+                onClick={() => setActiveTab('catalogo')}
+                className={`px-3 py-1 text-xs font-semibold rounded-lg transition ${
+                  activeTab === 'catalogo'
+                    ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Catálogo ({templates.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('historico')}
+                className={`px-3 py-1 text-xs font-semibold rounded-lg transition ${
+                  activeTab === 'historico'
+                    ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Tarefas Anteriores ({uniqueHistoricalTasks.length})
+              </button>
+            </div>
 
             {/* Favorite Filter Chip */}
             <button
-              onClick={() => setSelectedCategory('favoritos')}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition whitespace-nowrap flex items-center gap-1 border ${
+              type="button"
+              onClick={() => setSelectedCategory(selectedCategory === 'favoritos' ? 'todos' : 'favoritos')}
+              className={`px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 transition border shrink-0 ${
                 selectedCategory === 'favoritos'
-                  ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold shadow-sm'
-                  : 'bg-slate-900 text-amber-400 hover:bg-slate-800 border-slate-800'
+                  ? 'bg-amber-500/30 text-amber-300 border-amber-400'
+                  : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-amber-300'
               }`}
             >
-              <Star className="w-3 h-3 fill-amber-400" />
+              <Star className={`w-3.5 h-3.5 ${selectedCategory === 'favoritos' ? 'fill-amber-400 text-amber-400' : 'text-amber-400'}`} />
               <span>Favoritos ({favoritesCount})</span>
             </button>
 
-            {POLICE_TASK_CATEGORIES.map((c) => (
+            {/* Quick Catalog Reset / Clear Actions */}
+            {onRestoreDefaults && (
               <button
-                key={c.id}
-                onClick={() => setSelectedCategory(c.id)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition whitespace-nowrap border ${
-                  selectedCategory === c.id
-                    ? `${c.badgeBg} ${c.badgeText} ${c.border} ring-1 ring-amber-400/40`
-                    : 'bg-slate-900 text-slate-400 hover:text-white border-slate-800'
-                }`}
+                type="button"
+                onClick={() => setShowRestoreConfirm(true)}
+                title="Restaurar modelos padrão da Polícia Civil (seus favoritos serão mantidos)"
+                className="p-1.5 text-slate-400 hover:text-amber-300 hover:bg-slate-950 border border-slate-800 rounded-xl transition text-xs flex items-center gap-1 shrink-0"
               >
-                {c.label}
+                <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden xl:inline">Restaurar Padrões</span>
               </button>
-            ))}
+            )}
+
+            {onDeleteAllTemplates && templates.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteAllConfirm(true)}
+                title="Limpar modelos comuns (modelos favoritos continuam salvos e protegidos)"
+                className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-950 border border-slate-800 rounded-xl transition text-xs flex items-center gap-1 shrink-0"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span className="hidden xl:inline">Limpar Comuns</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Block 3: Inline Creation Form (When Toggled) */}
+        {/* Block 3: Simplified Creation Form (Title, Description, Priority) */}
         {showCreateForm && (
           <form 
             onSubmit={handleCreateNewEntry} 
-            className="p-5 bg-slate-950 border-b border-amber-500/30 space-y-3.5 shrink-0 animate-fadeIn shadow-inner"
+            className="p-4 bg-slate-950 border-b border-amber-500/30 space-y-3 shrink-0 animate-fadeIn shadow-inner"
           >
             <div className="flex items-center justify-between">
               <div className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
                 <FilePlus className="w-4 h-4" />
-                <span>Criar Nova Entrada de Procedimento / Novo Modelo no Catálogo</span>
+                <span>Nova Entrada Simplificada (Título, Descrição e Prioridade)</span>
               </div>
               <span className="text-[11px] text-slate-400">
-                Os dados serão salvos no banco de dados da delegacia.
+                Preenchimento rápido e direto para agendamento policial.
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-              <div className="md:col-span-6">
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+              {/* 1. Title */}
+              <div className="md:col-span-7">
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
                   Título da Entrada / Procedimento *
                 </label>
                 <input
@@ -453,79 +430,77 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
                   required
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="Ex: Oitiva de Testemunha / Cumprimento de Mandado"
+                  placeholder="Ex: Oitiva de Testemunha / Cumprimento de Mandado / Perícia"
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
                 />
               </div>
 
-              <div className="md:col-span-6">
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                  Nº do Procedimento / Inquérito (Opcional)
+              {/* 2. Priority Selection with Visual Feedback */}
+              <div className="md:col-span-5">
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  Prioridade & Brilho do Card
                 </label>
-                <input
-                  type="text"
-                  value={newProcedure}
-                  onChange={(e) => setNewProcedure(e.target.value)}
-                  placeholder="Ex: IP nº 123-456/2026"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                />
+                <div className="grid grid-cols-4 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setNewPriority('baixa')}
+                    className={`py-1.5 px-2 rounded-xl text-xs font-bold border transition text-center ${
+                      newPriority === 'baixa'
+                        ? 'bg-slate-800 text-slate-200 border-slate-600 ring-1 ring-slate-500'
+                        : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:text-slate-300'
+                    }`}
+                  >
+                    Baixa
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewPriority('media')}
+                    className={`py-1.5 px-2 rounded-xl text-xs font-bold border transition text-center ${
+                      newPriority === 'media'
+                        ? 'bg-blue-950 text-blue-300 border-blue-600 ring-1 ring-blue-500 shadow-sm shadow-blue-950'
+                        : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:text-blue-300'
+                    }`}
+                  >
+                    Média
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewPriority('alta')}
+                    className={`py-1.5 px-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1 ${
+                      newPriority === 'alta'
+                        ? 'bg-amber-950 text-amber-300 border-amber-500 ring-1 ring-amber-400 shadow-md shadow-amber-950'
+                        : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:text-amber-300'
+                    }`}
+                  >
+                    <AlertTriangle className="w-3 h-3" />
+                    <span>Alta</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewPriority('urgente')}
+                    className={`py-1.5 px-2 rounded-xl text-xs font-black border transition text-center flex items-center justify-center gap-1 ${
+                      newPriority === 'urgente'
+                        ? 'bg-rose-950 text-rose-200 border-rose-500 ring-2 ring-rose-400 shadow-lg shadow-rose-950 animate-pulse'
+                        : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:text-rose-300'
+                    }`}
+                  >
+                    <Flame className="w-3 h-3 text-rose-400" />
+                    <span>Urgente</span>
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                  Categoria
-                </label>
-                <select
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value as PoliceTaskCategory)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                >
-                  {POLICE_TASK_CATEGORIES.map((c) => (
-                    <option key={c.id} value={c.id}>{c.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                  Prioridade
-                </label>
-                <select
-                  value={newPriority}
-                  onChange={(e) => setNewPriority(e.target.value as PoliceTaskPriority)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                >
-                  <option value="baixa">Baixa</option>
-                  <option value="media">Média</option>
-                  <option value="alta">Alta</option>
-                  <option value="urgente">Urgente</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                  Horário Padrão
-                </label>
-                <input
-                  type="time"
-                  value={newTime}
-                  onChange={(e) => setNewTime(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                />
-              </div>
-            </div>
-
+            {/* 3. Description */}
             <div>
-              <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                Descrição & Roteiro de Instrução
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                Descrição / Instruções / Observações
               </label>
               <textarea
                 rows={2}
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
-                placeholder="Detalhes, testemunhas, roteiro ou checklist do procedimento..."
+                placeholder="Roteiro de diligência, dados da testemunha, checklist ou anotações..."
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 resize-none"
               />
             </div>
@@ -551,7 +526,7 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
                   />
                   <span className="flex items-center gap-1 font-semibold">
                     <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    <span>Marcar como Favorito (sempre no topo)</span>
+                    <span>Marcar como Favorito (sempre no topo e protegido)</span>
                   </span>
                 </label>
               </div>
@@ -569,34 +544,33 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
                   disabled={isSubmitting}
                   className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md disabled:opacity-50"
                 >
-                  <Check className="w-4 h-4" />
-                  <span>{isSubmitting ? 'Salvando...' : 'Salvar Entrada / Modelo'}</span>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{isSubmitting ? 'Salvando...' : 'Salvar Entrada'}</span>
                 </button>
               </div>
             </div>
           </form>
         )}
 
-        {/* Block 4: Multi-Column Catalog Cards Grid (Filling 85% screen space) */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 no-scrollbar">
+        {/* Block 4: Responsive Grid Container (85% Screen View) */}
+        <div className="p-5 flex-1 overflow-y-auto bg-slate-900">
           {activeTab === 'catalogo' ? (
             filteredTemplates.length === 0 ? (
               <div className="text-center py-16 space-y-3 border border-dashed border-slate-800 rounded-2xl p-8 max-w-xl mx-auto">
-                <Bookmark className="w-10 h-10 text-slate-500 mx-auto" />
+                <FolderCheck className="w-10 h-10 text-slate-500 mx-auto" />
                 <div className="text-base font-bold text-white">
                   Nenhum modelo encontrado no catálogo
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Você pode criar uma nova entrada/modelo com o botão acima ou restaurar o catálogo padrão de procedimentos da Polícia Civil.
+                  Crie novos modelos com o botão acima ou restaure os modelos oficiais padrão da Polícia Civil.
                 </p>
                 {onRestoreDefaults && (
                   <button
                     type="button"
                     onClick={() => setShowRestoreConfirm(true)}
-                    disabled={actionLoading}
-                    className="px-4 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 transition disabled:opacity-50 mt-2"
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs inline-flex items-center gap-1.5 shadow-sm"
                   >
-                    <Sparkles className="w-4 h-4" />
+                    <RotateCcw className="w-3.5 h-3.5" />
                     <span>Restaurar 8 Modelos Padrão</span>
                   </button>
                 )}
@@ -612,7 +586,7 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
                       key={template.id}
                       className={`bg-slate-950/80 border rounded-2xl p-4 flex flex-col justify-between transition-all duration-150 relative overflow-hidden group ${
                         template.isFavorite
-                          ? 'border-amber-500/50 shadow-md shadow-amber-950/20 ring-1 ring-amber-500/20'
+                          ? 'border-amber-500/60 shadow-lg shadow-amber-950/30 ring-1 ring-amber-500/30'
                           : 'border-slate-800 hover:border-slate-700 hover:shadow-lg'
                       }`}
                     >
@@ -632,27 +606,33 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
                             {template.isFavorite && (
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
                                 <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                                <span>Favorito</span>
+                                <span>Favorito (Protegido)</span>
                               </span>
                             )}
                           </div>
 
                           <div className="flex items-center gap-1.5">
-                            {template.time && (
-                              <span className="text-[10px] font-mono font-bold text-amber-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
-                                {template.time}
+                            {template.priority === 'urgente' ? (
+                              <span className="text-[10px] uppercase font-black text-rose-200 bg-rose-950/80 border border-rose-600/80 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                <Flame className="w-3 h-3 text-rose-400" />
+                                <span>Urgente</span>
+                              </span>
+                            ) : template.priority === 'alta' ? (
+                              <span className="text-[10px] uppercase font-bold text-amber-300 bg-amber-950/60 border border-amber-600/60 px-1.5 py-0.5 rounded">
+                                Alta
+                              </span>
+                            ) : (
+                              <span className="text-[10px] uppercase font-semibold text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+                                {template.priority}
                               </span>
                             )}
-                            <span className="text-[10px] uppercase font-semibold text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
-                              {template.priority}
-                            </span>
 
                             {/* Favorite Toggle Button */}
                             {onToggleFavorite && (
                               <button
                                 type="button"
                                 onClick={() => onToggleFavorite(template.id, !template.isFavorite)}
-                                title={template.isFavorite ? 'Remover dos favoritos' : 'Marcar como favorito (fixa no topo)'}
+                                title={template.isFavorite ? 'Favorito fixado no topo (protegido)' : 'Marcar como favorito (fixa no topo e protege)'}
                                 className={`p-1 rounded-lg transition border ${
                                   template.isFavorite
                                     ? 'bg-amber-500/20 text-amber-400 border-amber-500/40 hover:bg-amber-500/30'
@@ -708,14 +688,24 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
                             <span>{isScheduling ? 'Agendando...' : 'Agendar'}</span>
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() => setTemplateToDelete(template)}
-                            title="Excluir modelo do catálogo"
-                            className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-slate-900 rounded-lg transition"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {/* Protected Favorites cannot be deleted */}
+                          {template.isFavorite ? (
+                            <span 
+                              title="Modelo favorito protegido contra exclusão acidental"
+                              className="p-1.5 text-amber-400/70 bg-amber-950/40 border border-amber-500/20 rounded-lg cursor-not-allowed"
+                            >
+                              <Lock className="w-3.5 h-3.5" />
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setTemplateToDelete(template)}
+                              title="Excluir modelo do catálogo"
+                              className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-slate-900 rounded-lg transition"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -758,7 +748,9 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
                           )}
                         </div>
 
-                        <h4 className="text-sm font-bold text-white mb-1.5">{t.title}</h4>
+                        <h4 className="text-sm font-bold text-white mb-1.5 leading-snug">
+                          {t.title}
+                        </h4>
 
                         {t.procedureNumber && (
                           <div className="flex items-center gap-1.5 text-xs font-mono text-amber-400/90 font-medium mb-2">
@@ -774,25 +766,15 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
                         )}
                       </div>
 
-                      <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2 mt-2">
+                      <div className="pt-3 border-t border-slate-800/80 flex items-center justify-end gap-2 mt-2">
                         <button
                           type="button"
-                          onClick={() => onSelectTaskToReplicate(t)}
-                          title="Replicar em vários dias"
-                          className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1 transition"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                          <span>Replicar</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleScheduleTemplate(t)}
+                          onClick={() => handleScheduleHistorical(t)}
                           disabled={isScheduling}
                           className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1 transition shadow-sm disabled:opacity-50"
                         >
                           <CalendarCheck2 className="w-3.5 h-3.5" />
-                          <span>{isScheduling ? 'Agendando...' : 'Agendar'}</span>
+                          <span>{isScheduling ? 'Agendando...' : 'Reutilizar'}</span>
                         </button>
                       </div>
                     </div>
@@ -806,7 +788,7 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
         {/* Block 5: Modal Footer */}
         <div className="px-5 py-3 border-t border-slate-800 bg-slate-950 flex items-center justify-between gap-4 shrink-0">
           <div className="text-xs text-slate-400 hidden sm:block">
-            Selecione qualquer procedimento do catálogo para agendar no dia <strong className="text-amber-300">{targetDate}</strong> ou marque com estrela para fixar no topo.
+            Selecione qualquer procedimento do catálogo para agendar no dia <strong className="text-amber-300">{formattedTargetDate || targetDate}</strong> ou marque com estrela para fixar no topo e proteger contra exclusão.
           </div>
 
           <button
@@ -838,7 +820,7 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
       <ConfirmModal
         isOpen={showRestoreConfirm}
         title="Restaurar Catálogo Padrão"
-        description="Deseja restaurar os modelos oficiais de procedimentos da Polícia Civil (Oitivas, Mandados, Inquéritos, Audiências)? Seus modelos criados serão preservados."
+        description="Deseja restaurar os modelos oficiais de procedimentos da Polícia Civil (Oitivas, Mandados, Inquéritos, Audiências)? Seus modelos marcados como favoritos permanecerão salvos e protegidos."
         confirmLabel="Sim, Restaurar Modelos"
         cancelLabel="Cancelar"
         variant="primary"
@@ -848,12 +830,12 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
         onClose={() => setShowRestoreConfirm(false)}
       />
 
-      {/* Confirmation Modal 3: Delete All Templates */}
+      {/* Confirmation Modal 3: Delete Non-Favorite Templates */}
       <ConfirmModal
         isOpen={showDeleteAllConfirm}
-        title="Limpar Todo o Catálogo"
-        description="Atenção: Esta ação excluirá permanentemente todos os modelos salvos no banco de dados. Deseja prosseguir?"
-        confirmLabel="Sim, Limpar Catálogo"
+        title="Limpar Modelos Não Favoritados"
+        description="Atenção: Esta ação excluirá os modelos não favoritados. Seus modelos marcados como favoritos (⭐) estão protegidos e permanecerão salvos no catálogo. Deseja prosseguir?"
+        confirmLabel="Sim, Limpar Modelos Comuns"
         cancelLabel="Cancelar"
         variant="danger"
         iconType="warning"

@@ -12,6 +12,78 @@
   }
 }
 
+/* Priority & Status dynamic glow keyframes */
+@keyframes urgent-pulse-amber {
+  0%, 100% {
+    box-shadow: 0 0 12px 1px rgba(245, 158, 11, 0.45), inset 0 0 8px 0 rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.9);
+  }
+  50% {
+    box-shadow: 0 0 24px 4px rgba(245, 158, 11, 0.75), inset 0 0 14px 1px rgba(245, 158, 11, 0.3);
+    border-color: rgba(251, 191, 36, 1);
+  }
+}
+
+@keyframes urgent-pulse-emerald {
+  0%, 100% {
+    box-shadow: 0 0 12px 1px rgba(16, 185, 129, 0.45), inset 0 0 8px 0 rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.9);
+  }
+  50% {
+    box-shadow: 0 0 24px 4px rgba(16, 185, 129, 0.75), inset 0 0 14px 1px rgba(16, 185, 129, 0.3);
+    border-color: rgba(52, 211, 153, 1);
+  }
+}
+
+@keyframes urgent-pulse-blue {
+  0%, 100% {
+    box-shadow: 0 0 12px 1px rgba(59, 130, 246, 0.45), inset 0 0 8px 0 rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.9);
+  }
+  50% {
+    box-shadow: 0 0 24px 4px rgba(59, 130, 246, 0.75), inset 0 0 14px 1px rgba(59, 130, 246, 0.3);
+    border-color: rgba(96, 165, 250, 1);
+  }
+}
+
+@keyframes urgent-pulse-purple {
+  0%, 100% {
+    box-shadow: 0 0 12px 1px rgba(168, 85, 247, 0.45), inset 0 0 8px 0 rgba(168, 85, 247, 0.15);
+    border-color: rgba(168, 85, 247, 0.9);
+  }
+  50% {
+    box-shadow: 0 0 24px 4px rgba(168, 85, 247, 0.75), inset 0 0 14px 1px rgba(168, 85, 247, 0.3);
+    border-color: rgba(192, 132, 252, 1);
+  }
+}
+
+@keyframes urgent-pulse-rose {
+  0%, 100% {
+    box-shadow: 0 0 12px 1px rgba(244, 63, 94, 0.45), inset 0 0 8px 0 rgba(244, 63, 94, 0.15);
+    border-color: rgba(244, 63, 94, 0.9);
+  }
+  50% {
+    box-shadow: 0 0 24px 4px rgba(244, 63, 94, 0.75), inset 0 0 14px 1px rgba(244, 63, 94, 0.3);
+    border-color: rgba(251, 113, 133, 1);
+  }
+}
+
+.glow-urgent-pendente {
+  animation: urgent-pulse-amber 2s infinite ease-in-out;
+}
+.glow-urgent-concluida {
+  animation: urgent-pulse-emerald 2s infinite ease-in-out;
+}
+.glow-urgent-em_andamento {
+  animation: urgent-pulse-blue 2s infinite ease-in-out;
+}
+.glow-urgent-remarcada {
+  animation: urgent-pulse-purple 2s infinite ease-in-out;
+}
+.glow-urgent-nao_feita {
+  animation: urgent-pulse-rose 2s infinite ease-in-out;
+}
+
 @media print {
   body {
     background-color: white !important;

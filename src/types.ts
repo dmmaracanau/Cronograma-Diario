@@ -51,6 +51,7 @@ export interface PoliceTask {
   notes?: string; // Anotações do cumprimento / diligência
   assignedBadge?: string; // Matrícula ou nome do agente responsável
   completedAt?: string; // ISO string
+  order?: number; // Sorting position for drag and drop
   createdAt: string;
   updatedAt: string;
 }

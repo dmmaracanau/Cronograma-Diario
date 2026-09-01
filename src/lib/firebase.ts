@@ -247,16 +247,22 @@ export function subscribeToTasks(userId: string, onUpdate: (tasks: PoliceTask[])
         notes: data.notes || '',
         assignedBadge: data.assignedBadge || '',
         completedAt: data.completedAt || '',
+        order: typeof data.order === 'number' ? data.order : undefined,
         createdAt: data.createdAt || new Date().toISOString(),
         updatedAt: data.updatedAt || new Date().toISOString(),
       });
     });
 
-    // Sort by date, then by time if available
+    // Sort by date, then by custom order if set, then by time
     tasks.sort((a, b) => {
       if (a.date !== b.date) {
         return a.date.localeCompare(b.date);
       }
+      if (typeof a.order === 'number' && typeof b.order === 'number') {
+        return a.order - b.order;
+      }
+      if (typeof a.order === 'number') return -1;
+      if (typeof b.order === 'number') return 1;
       return (a.time || '99:99').localeCompare(b.time || '99:99');
     });
 
@@ -285,6 +291,7 @@ export async function addPoliceTask(task: Omit<PoliceTask, 'id' | 'createdAt' | 
     reason: task.reason || '',
     assignedBadge: task.assignedBadge || '',
     completedAt: task.completedAt || '',
+    order: typeof task.order === 'number' ? task.order : Date.now(),
     userId: task.userId,
     id: newDocRef.id,
     createdAt: now,
@@ -455,6 +462,7 @@ export async function deleteTaskTemplate(templateId: string): Promise<void> {
   await deleteDoc(templateRef);
 }
 
+// Delete non-favorite task templates (Favorite templates are NEVER deleted by reset/clear tools)
 export async function deleteAllTaskTemplates(userId: string): Promise<void> {
   const templatesRef = collection(db, 'task_templates');
   const q = query(templatesRef, where('userId', '==', userId));
@@ -467,7 +475,11 @@ export async function deleteAllTaskTemplates(userId: string): Promise<void> {
 
   const deletePromises: Promise<void>[] = [];
   snapshot.forEach((docSnap: any) => {
-    deletePromises.push(deleteDoc(doc(db, 'task_templates', docSnap.id)));
+    const data = docSnap.data();
+    // Protect favorites: DO NOT DELETE if isFavorite is true
+    if (!data.isFavorite) {
+      deletePromises.push(deleteDoc(doc(db, 'task_templates', docSnap.id)));
+    }
   });
 
   await Promise.all(deletePromises);

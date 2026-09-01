@@ -34,6 +34,7 @@ interface DailyViewProps {
   onReplicateTask: (task: PoliceTask) => void;
   onPrintDocket: () => void;
   onSelectWeeklyView?: () => void;
+  onMoveTask?: (taskId: string, targetDate: string, targetIndex?: number) => void;
 }
 
 export const DailyView: React.FC<DailyViewProps> = ({
@@ -48,6 +49,7 @@ export const DailyView: React.FC<DailyViewProps> = ({
   onReplicateTask,
   onPrintDocket,
   onSelectWeeklyView,
+  onMoveTask,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('todos');
@@ -114,6 +116,17 @@ export const DailyView: React.FC<DailyViewProps> = ({
 
     return { total, concluidas, emAndamento, pendentes, remarcadas, naoFeitas, rate };
   }, [dayTasks]);
+
+  const handleDropOnTask = (sourceTaskId: string, targetTaskId: string) => {
+    if (!onMoveTask) return;
+    const targetTask = tasks.find((t) => t.id === targetTaskId);
+    if (!targetTask) return;
+
+    const list = tasks.filter((t) => t.date === targetTask.date);
+    const targetIndex = list.findIndex((t) => t.id === targetTaskId);
+
+    onMoveTask(sourceTaskId, targetTask.date, targetIndex);
+  };
 
   return (
     <div className="space-y-6">
