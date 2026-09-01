@@ -8,6 +8,7 @@ import {
   addTaskTemplate,
   deleteTaskTemplate,
   deleteAllTaskTemplates,
+  toggleTaskTemplateFavorite,
   replicateTaskToDates,
   addPoliceTask,
   updatePoliceTask,
@@ -27,6 +28,7 @@ import { TaskModal } from './components/TaskModal';
 import { StatusChangeModal } from './components/StatusChangeModal';
 import { ChooseTaskModal } from './components/ChooseTaskModal';
 import { ReplicateTaskModal } from './components/ReplicateTaskModal';
+import { ConfirmModal } from './components/ConfirmModal';
 import confetti from 'canvas-confetti';
 
 export default function App() {
@@ -57,6 +59,10 @@ export default function App() {
   // Replicate Task Modal state
   const [isReplicateModalOpen, setIsReplicateModalOpen] = useState(false);
   const [taskToReplicate, setTaskToReplicate] = useState<PoliceTask | TaskTemplate | null>(null);
+
+  // Task deletion confirmation state
+  const [taskToDelete, setTaskToDelete] = useState<PoliceTask | null>(null);
+  const [isDeletingTask, setIsDeletingTask] = useState(false);
 
   const [statusModalState, setStatusModalState] = useState<{
     isOpen: boolean;
@@ -251,9 +257,25 @@ export default function App() {
     } catch (_) {}
   };
 
-  // Delete Task
-  const handleDeleteTask = async (taskId: string) => {
-    await deletePoliceTask(taskId);
+  // Delete Task with in-app confirmation
+  const handleDeleteTask = (taskId: string) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (task) {
+      setTaskToDelete(task);
+    }
+  };
+
+  const handleConfirmDeleteTask = async () => {
+    if (!taskToDelete) return;
+    setIsDeletingTask(true);
+    try {
+      await deletePoliceTask(taskToDelete.id);
+      setTaskToDelete(null);
+    } catch (err) {
+      console.error('Error deleting task:', err);
+    } finally {
+      setIsDeletingTask(false);
+    }
   };
 
   // Quick Status Transition Handler
@@ -455,6 +477,9 @@ export default function App() {
         onDeleteTemplate={async (templateId) => {
           await deleteTaskTemplate(templateId);
         }}
+        onToggleFavorite={async (templateId, isFavorite) => {
+          await toggleTaskTemplateFavorite(templateId, isFavorite);
+        }}
         onRestoreDefaults={async () => {
           if (!user) return;
           for (const t of DEFAULT_TASK_TEMPLATES) {
@@ -496,6 +521,20 @@ export default function App() {
         onConfirm={async (taskId, updates) => {
           await updatePoliceTask(taskId, updates);
         }}
+      />
+
+      {/* In-app Confirmation Modal for Task Deletions (Never blocked by iframe) */}
+      <ConfirmModal
+        isOpen={Boolean(taskToDelete)}
+        title="Excluir Agendamento Policial"
+        description={`Deseja realmente remover o agendamento "${taskToDelete?.title}" marcado para ${taskToDelete?.date} às ${taskToDelete?.time || '09:00'}?`}
+        confirmLabel="Sim, Excluir"
+        cancelLabel="Cancelar"
+        variant="danger"
+        iconType="trash"
+        isLoading={isDeletingTask}
+        onConfirm={handleConfirmDeleteTask}
+        onClose={() => setTaskToDelete(null)}
       />
     </div>
   );

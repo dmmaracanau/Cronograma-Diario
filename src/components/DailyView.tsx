@@ -163,7 +163,7 @@ export const DailyView: React.FC<DailyViewProps> = ({
           {onSelectWeeklyView && (
             <button
               onClick={onSelectWeeklyView}
-              className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
+              className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
               title="Voltar para a Visão Semanal"
             >
               <CalendarDays className="w-4 h-4 text-amber-400" />
@@ -182,19 +182,11 @@ export const DailyView: React.FC<DailyViewProps> = ({
 
           <button
             onClick={() => onChooseTask(selectedDate)}
-            className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm"
-            title="Escolher procedimento existente no catálogo do banco de dados"
-          >
-            <Bookmark className="w-4 h-4 text-amber-400" />
-            <span>Escolher Tarefa</span>
-          </button>
-
-          <button
-            onClick={() => onAddTask(selectedDate)}
             className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition shadow-lg shadow-amber-500/20"
+            title="Escolher procedimento existente no catálogo ou cadastrar novo modelo"
           >
-            <Plus className="w-4 h-4" />
-            <span>Criar Tarefa</span>
+            <Bookmark className="w-4 h-4 text-slate-950" />
+            <span>Escolher do Catálogo</span>
           </button>
         </div>
       </div>

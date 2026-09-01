@@ -390,13 +390,18 @@ export function subscribeToTaskTemplates(userId: string, onUpdate: (templates: T
         priority: data.priority || 'media',
         time: data.time || '',
         notes: data.notes || '',
+        isFavorite: data.isFavorite === true,
         createdAt: data.createdAt || new Date().toISOString(),
         updatedAt: data.updatedAt || new Date().toISOString(),
       });
     });
 
-    // Sort alphabetically by title
-    templates.sort((a, b) => a.title.localeCompare(b.title));
+    // Sort favorites first, then alphabetically by title
+    templates.sort((a, b) => {
+      if (a.isFavorite && !b.isFavorite) return -1;
+      if (!a.isFavorite && b.isFavorite) return 1;
+      return a.title.localeCompare(b.title);
+    });
     onUpdate(templates);
   }, (error) => {
     console.error('Error subscribing to task templates:', error);
@@ -418,12 +423,22 @@ export async function addTaskTemplate(template: Omit<TaskTemplate, 'id' | 'creat
     time: template.time || '',
     description: template.description || '',
     notes: template.notes || '',
+    isFavorite: template.isFavorite === true,
     createdAt: now,
     updatedAt: now,
   });
 
   await setDoc(newDocRef, payload);
   return newDocRef.id;
+}
+
+export async function toggleTaskTemplateFavorite(templateId: string, isFavorite: boolean): Promise<void> {
+  const templateRef = doc(db, 'task_templates', templateId);
+  const cleanUpdates = sanitizeForFirestore({
+    isFavorite,
+    updatedAt: new Date().toISOString(),
+  });
+  await updateDoc(templateRef, cleanUpdates);
 }
 
 export async function updateTaskTemplate(templateId: string, updates: Partial<TaskTemplate>): Promise<void> {

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { PoliceTask, PoliceTaskCategory, PoliceTaskPriority, PoliceTaskStatus } from '../types';
 import { POLICE_TASK_CATEGORIES, STATUS_CONFIG } from '../data/policeTemplates';
+import { ConfirmModal } from './ConfirmModal';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -51,6 +52,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const [reason, setReason] = useState('');
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -129,18 +131,17 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     }
   };
 
-  const handleDelete = async () => {
+  const handleConfirmDelete = async () => {
     if (!initialData?.id || !onDelete) return;
-    if (window.confirm('Deseja realmente remover esta tarefa do cronograma policial?')) {
-      setLoading(true);
-      try {
-        await onDelete(initialData.id);
-        onClose();
-      } catch (err) {
-        console.error('Error deleting task:', err);
-      } finally {
-        setLoading(false);
-      }
+    setLoading(true);
+    try {
+      await onDelete(initialData.id);
+      setShowDeleteConfirm(false);
+      onClose();
+    } catch (err) {
+      console.error('Error deleting task:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -422,7 +423,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             {initialData?.id && onDelete ? (
               <button
                 type="button"
-                onClick={handleDelete}
+                onClick={() => setShowDeleteConfirm(true)}
                 disabled={loading}
                 className="px-3.5 py-2.5 bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/60 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
               >
@@ -454,6 +455,20 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Confirmation Modal for deletion */}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Excluir Agendamento"
+        description={`Deseja realmente remover o procedimento "${initialData?.title}" agendado para ${initialData?.date}?`}
+        confirmLabel="Sim, Excluir"
+        cancelLabel="Cancelar"
+        variant="danger"
+        iconType="trash"
+        isLoading={loading}
+        onConfirm={handleConfirmDelete}
+        onClose={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 };

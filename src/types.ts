@@ -30,6 +30,7 @@ export interface TaskTemplate {
   priority: PoliceTaskPriority;
   time?: string;
   notes?: string;
+  isFavorite?: boolean;
   createdAt: string;
   updatedAt: string;
 }
