@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047"/>
+      <stop offset="35%" stop-color="#F59E0B"/>
+      <stop offset="70%" stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#B45309"/>
+    </linearGradient>
+    <linearGradient id="sandGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FEF08A"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+  
+  <!-- Dark rounded background for contrast in browser tabs (both dark & light tab bars) -->
+  <rect width="32" height="32" rx="7" fill="#090d16" />
+  
+  <g filter="url(#goldGlow)">
+    <!-- Top & Bottom Golden Plates -->
+    <rect x="5" y="4" width="22" height="2.5" rx="1" fill="url(#goldGrad)" />
+    <rect x="5" y="25.5" width="22" height="2.5" rx="1" fill="url(#goldGrad)" />
+    
+    <!-- Hourglass Body Contour -->
+    <path d="M7 6.5 C7 12, 13 14, 15 16 C13 18, 7 20, 7 25.5 L25 25.5 C25 20, 19 18, 17 16 C19 14, 25 12, 25 6.5 Z" 
+          fill="none" 
+          stroke="url(#goldGrad)" 
+          stroke-width="1.8" 
+          stroke-linejoin="round" />
+    
+    <!-- Sand in top bulb -->
+    <path d="M9 8.5 L23 8.5 C22.5 12, 18.5 13.5, 16 14 C13.5 13.5, 9.5 12, 9 8.5 Z" 
+          fill="url(#sandGrad)" 
+          opacity="0.85" />
+          
+    <!-- Falling Stream -->
+    <line x1="16" y1="14" x2="16" y2="21" stroke="#FEF08A" stroke-width="1.2" stroke-dasharray="1.5,1" />
+
+    <!-- Sand in bottom bulb -->
+    <path d="M10 24.5 L22 24.5 C21.5 21, 18 19.5, 16 19.5 C14 19.5, 10.5 21, 10 24.5 Z" 
+          fill="url(#sandGrad)" />
+  </g>
+</svg>

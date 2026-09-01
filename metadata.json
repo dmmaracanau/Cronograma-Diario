@@ -1,0 +1,6 @@
+{
+  "name": "Cronograma Diário",
+  "description": "Sistema de Gestão de Cronograma e Tarefas Diárias, Semanais e Mensais da 1ª Delegacia de Polícia de Maracanaú com sincronização em tempo real.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

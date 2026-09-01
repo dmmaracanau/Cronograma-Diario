@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Regras de acesso e sincronização para a 1ª Delegacia de Polícia de Maracanaú
+    
+    // Perfil do servidor policial
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+
+    // Tarefas, Procedimentos e Cronograma da Delegacia
+    match /tasks/{taskId} {
+      allow read, write: if true;
+    }
+
+    // Catálogo e Modelos de Tarefas da Delegacia
+    match /task_templates/{templateId} {
+      allow read, write: if true;
+    }
+  }
+}

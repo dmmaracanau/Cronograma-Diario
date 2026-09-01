@@ -1,0 +1,53 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Dados cadastrais do servidor policial da 1ª DP de Maracanaú",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "ID do usuário do Firebase Auth" },
+        "name": { "type": "string", "description": "Nome do servidor" },
+        "email": { "type": "string", "description": "E-mail funcional" },
+        "badge": { "type": "string", "description": "Matrícula funcional" },
+        "role": { "type": "string", "description": "Cargo: Delegado, Inspetor, Escrivão, Agente, etc." },
+        "department": { "type": "string", "description": "Setor/Cartório na 1ª DP" },
+        "createdAt": { "type": "string", "description": "Data de criação ISO" }
+      },
+      "required": ["userId", "name", "email"]
+    },
+    "PoliceTask": {
+      "title": "PoliceTask",
+      "description": "Tarefa ou compromisso do cronograma policial",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "procedureNumber": { "type": "string" },
+        "category": { "type": "string" },
+        "priority": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "status": { "type": "string" },
+        "rescheduledTo": { "type": "string" },
+        "reason": { "type": "string" },
+        "notes": { "type": "string" },
+        "completedAt": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "title", "date", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "entity": "UserProfile",
+      "description": "Perfil do servidor"
+    },
+    "/tasks/{taskId}": {
+      "entity": "PoliceTask",
+      "description": "Coleção de tarefas do cronograma diário"
+    }
+  }
+}
