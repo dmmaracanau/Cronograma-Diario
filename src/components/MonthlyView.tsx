@@ -28,6 +28,7 @@ interface MonthlyViewProps {
   onQuickStatus: (task: PoliceTask, status: PoliceTaskStatus) => void;
   onReplicateTask: (task: PoliceTask) => void;
   onSelectDayView: (date: string) => void;
+  onMoveTask?: (taskId: string, targetDate: string, targetIndex?: number) => void;
 }
 
 export const MonthlyView: React.FC<MonthlyViewProps> = ({
@@ -41,7 +42,9 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({
   onQuickStatus,
   onReplicateTask,
   onSelectDayView,
+  onMoveTask,
 }) => {
+  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
   const [currentYear, setCurrentYear] = useState(() => {
     const [y] = selectedDate.split('-').map(Number);
     return y || new Date().getFullYear();
@@ -232,13 +235,34 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({
               const pendingCount = dayTasks.filter((t) => t.status === 'pendente' || t.status === 'em_andamento').length;
               const rescheduledCount = dayTasks.filter((t) => t.status === 'remarcada').length;
               const notDoneCount = dayTasks.filter((t) => t.status === 'nao_feita').length;
+              const isDragHover = dragOverDate === cell.dateStr;
 
               return (
                 <div
                   key={cell.dateStr}
                   onClick={() => setSelectedDate(cell.dateStr)}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (dragOverDate !== cell.dateStr) setDragOverDate(cell.dateStr);
+                  }}
+                  onDragLeave={(e) => {
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                      setDragOverDate(null);
+                    }
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOverDate(null);
+                    const taskId = e.dataTransfer.getData('text/plain');
+                    if (taskId && onMoveTask) {
+                      onMoveTask(taskId, cell.dateStr);
+                    }
+                  }}
                   className={`min-h-[85px] sm:min-h-[105px] p-2 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
-                    cell.isSelected
+                    isDragHover
+                      ? 'border-amber-400 ring-2 ring-amber-400/70 bg-amber-500/10 shadow-lg'
+                      : cell.isSelected
                       ? 'bg-amber-500/10 border-amber-400 ring-1 ring-amber-400/50 shadow-md'
                       : cell.isToday
                       ? 'bg-blue-950/40 border-blue-600/70 hover:border-blue-400'
@@ -363,6 +387,14 @@ export const MonthlyView: React.FC<MonthlyViewProps> = ({
                   onDelete={onDeleteTask}
                   onQuickStatus={onQuickStatus}
                   onReplicate={onReplicateTask}
+                  onDropOnTask={(sourceTaskId, targetTaskId) => {
+                    if (!onMoveTask) return;
+                    const targetTask = tasks.find((t) => t.id === targetTaskId);
+                    if (!targetTask) return;
+                    const list = tasks.filter((t) => t.date === targetTask.date);
+                    const targetIndex = list.findIndex((t) => t.id === targetTaskId);
+                    onMoveTask(sourceTaskId, targetTask.date, targetIndex);
+                  }}
                 />
               ))
             )}

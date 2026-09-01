@@ -4,8 +4,9 @@ import {
   LogOut, 
   Calendar, 
   Clock, 
-  CalendarDays,
-  Bookmark
+  Bookmark,
+  Edit3,
+  FileText
 } from 'lucide-react';
 import { UserProfile, ViewMode } from '../types';
 import { signOut } from '../lib/firebase';
@@ -18,6 +19,10 @@ interface HeaderProps {
   totalTasksCount: number;
   completedTasksCount: number;
   onOpenCatalog?: () => void;
+  isBatchMode?: boolean;
+  onToggleBatchMode?: () => void;
+  selectedBatchCount?: number;
+  onOpenPdfModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -28,6 +33,10 @@ export const Header: React.FC<HeaderProps> = ({
   totalTasksCount,
   completedTasksCount,
   onOpenCatalog,
+  isBatchMode = false,
+  onToggleBatchMode,
+  selectedBatchCount = 0,
+  onOpenPdfModal,
 }) => {
   const handleLogout = async () => {
     try {
@@ -66,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Center/Right: Primary View Toggle + User Actions */}
+          {/* Center/Right: Primary View Toggle + User Actions + Batch Edit + PDF Export */}
           <div className="flex items-center gap-2 sm:gap-3 ml-auto">
             {/* Primary Toggle: Semanal / Diário */}
             <div className="bg-slate-950 border border-slate-800 p-1 rounded-xl flex items-center gap-1 shadow-inner">
@@ -128,6 +137,43 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
 
+            {/* PDF Export Icon Button - Located right beside user name */}
+            {onOpenPdfModal && (
+              <button
+                id="btn-open-pdf-modal"
+                onClick={onOpenPdfModal}
+                className="p-2 bg-slate-800 hover:bg-slate-700 text-amber-400 hover:text-amber-300 border border-slate-700 hover:border-amber-500/50 rounded-xl transition shadow-sm flex items-center justify-center"
+                title="Gerar e Exportar Cronograma em PDF (Diário, Semanal ou Mensal)"
+              >
+                <FileText className="w-4 h-4 text-amber-400" />
+              </button>
+            )}
+
+            {/* Batch Edit Action Icon-Only Button - Located right beside user name */}
+            {onToggleBatchMode && (
+              <button
+                id="btn-toggle-batch-mode"
+                onClick={onToggleBatchMode}
+                className={`p-2 rounded-xl transition border shadow-sm relative flex items-center justify-center ${
+                  isBatchMode
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white border-rose-400 shadow-rose-950 ring-2 ring-rose-400/50 animate-pulse'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border-slate-700'
+                }`}
+                title={
+                  isBatchMode 
+                    ? `Modo Edição em Lote Ativo (${selectedBatchCount} selecionados) - Clique para desativar` 
+                    : 'Editar em Lote (seleção múltipla para concluir ou excluir)'
+                }
+              >
+                <Edit3 className={`w-4 h-4 ${isBatchMode ? 'text-white' : 'text-amber-400'}`} />
+                {isBatchMode && selectedBatchCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-rose-500 text-white font-bold text-[9px] rounded-full flex items-center justify-center border border-slate-900 shadow">
+                    {selectedBatchCount}
+                  </span>
+                )}
+              </button>
+            )}
+
             {/* Logout Button */}
             <button
               onClick={handleLogout}
@@ -142,4 +188,5 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+
 

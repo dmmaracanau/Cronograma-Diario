@@ -33,6 +33,7 @@ interface ChooseTaskModalProps {
   onToggleFavorite?: (templateId: string, isFavorite: boolean) => Promise<void>;
   onRestoreDefaults?: () => Promise<void>;
   onDeleteAllTemplates?: () => Promise<void>;
+  onCreateNewEntry?: () => void;
 }
 
 export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
@@ -48,6 +49,7 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
   onToggleFavorite,
   onRestoreDefaults,
   onDeleteAllTemplates,
+  onCreateNewEntry,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
@@ -297,18 +299,21 @@ export const ChooseTaskModal: React.FC<ChooseTaskModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Toggle create entry button inside the modal */}
+            {/* Create entry button inside the modal */}
             <button
+              id="btn-choose-modal-create-new"
               type="button"
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm ${
-                showCreateForm
-                  ? 'bg-amber-400 text-slate-950 shadow-amber-500/20'
-                  : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40'
-              }`}
+              onClick={() => {
+                if (onCreateNewEntry) {
+                  onCreateNewEntry();
+                } else {
+                  setShowCreateForm(!showCreateForm);
+                }
+              }}
+              className="px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20 active:scale-95 cursor-pointer"
             >
               <FilePlus className="w-4 h-4" />
-              <span>{showCreateForm ? 'Ocultar Formulário' : 'Criar Nova Entrada'}</span>
+              <span>Criar Nova Entrada</span>
             </button>
 
             <button

@@ -13,75 +13,85 @@
 }
 
 /* Priority & Status dynamic glow keyframes */
-@keyframes urgent-pulse-amber {
+@keyframes urgent-shimmer-amber {
   0%, 100% {
-    box-shadow: 0 0 12px 1px rgba(245, 158, 11, 0.45), inset 0 0 8px 0 rgba(245, 158, 11, 0.15);
-    border-color: rgba(245, 158, 11, 0.9);
+    box-shadow: 0 0 14px 2px rgba(245, 158, 11, 0.5), inset 0 0 10px 1px rgba(245, 158, 11, 0.2);
+    border-color: rgba(251, 191, 36, 0.95);
+    filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.4));
   }
   50% {
-    box-shadow: 0 0 24px 4px rgba(245, 158, 11, 0.75), inset 0 0 14px 1px rgba(245, 158, 11, 0.3);
-    border-color: rgba(251, 191, 36, 1);
+    box-shadow: 0 0 28px 6px rgba(245, 158, 11, 0.85), inset 0 0 18px 3px rgba(245, 158, 11, 0.4);
+    border-color: rgba(254, 240, 138, 1);
+    filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.8));
   }
 }
 
-@keyframes urgent-pulse-emerald {
+@keyframes urgent-shimmer-emerald {
   0%, 100% {
-    box-shadow: 0 0 12px 1px rgba(16, 185, 129, 0.45), inset 0 0 8px 0 rgba(16, 185, 129, 0.15);
-    border-color: rgba(16, 185, 129, 0.9);
+    box-shadow: 0 0 14px 2px rgba(16, 185, 129, 0.5), inset 0 0 10px 1px rgba(16, 185, 129, 0.2);
+    border-color: rgba(52, 211, 153, 0.95);
+    filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.4));
   }
   50% {
-    box-shadow: 0 0 24px 4px rgba(16, 185, 129, 0.75), inset 0 0 14px 1px rgba(16, 185, 129, 0.3);
-    border-color: rgba(52, 211, 153, 1);
+    box-shadow: 0 0 28px 6px rgba(16, 185, 129, 0.85), inset 0 0 18px 3px rgba(16, 185, 129, 0.4);
+    border-color: rgba(167, 243, 208, 1);
+    filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.8));
   }
 }
 
-@keyframes urgent-pulse-blue {
+@keyframes urgent-shimmer-blue {
   0%, 100% {
-    box-shadow: 0 0 12px 1px rgba(59, 130, 246, 0.45), inset 0 0 8px 0 rgba(59, 130, 246, 0.15);
-    border-color: rgba(59, 130, 246, 0.9);
+    box-shadow: 0 0 14px 2px rgba(59, 130, 246, 0.5), inset 0 0 10px 1px rgba(59, 130, 246, 0.2);
+    border-color: rgba(96, 165, 250, 0.95);
+    filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.4));
   }
   50% {
-    box-shadow: 0 0 24px 4px rgba(59, 130, 246, 0.75), inset 0 0 14px 1px rgba(59, 130, 246, 0.3);
-    border-color: rgba(96, 165, 250, 1);
+    box-shadow: 0 0 28px 6px rgba(59, 130, 246, 0.85), inset 0 0 18px 3px rgba(59, 130, 246, 0.4);
+    border-color: rgba(191, 219, 254, 1);
+    filter: drop-shadow(0 0 8px rgba(96, 165, 250, 0.8));
   }
 }
 
-@keyframes urgent-pulse-purple {
+@keyframes urgent-shimmer-purple {
   0%, 100% {
-    box-shadow: 0 0 12px 1px rgba(168, 85, 247, 0.45), inset 0 0 8px 0 rgba(168, 85, 247, 0.15);
-    border-color: rgba(168, 85, 247, 0.9);
+    box-shadow: 0 0 14px 2px rgba(168, 85, 247, 0.5), inset 0 0 10px 1px rgba(168, 85, 247, 0.2);
+    border-color: rgba(192, 132, 252, 0.95);
+    filter: drop-shadow(0 0 4px rgba(168, 85, 247, 0.4));
   }
   50% {
-    box-shadow: 0 0 24px 4px rgba(168, 85, 247, 0.75), inset 0 0 14px 1px rgba(168, 85, 247, 0.3);
-    border-color: rgba(192, 132, 252, 1);
+    box-shadow: 0 0 28px 6px rgba(168, 85, 247, 0.85), inset 0 0 18px 3px rgba(168, 85, 247, 0.4);
+    border-color: rgba(233, 213, 255, 1);
+    filter: drop-shadow(0 0 8px rgba(192, 132, 252, 0.8));
   }
 }
 
-@keyframes urgent-pulse-rose {
+@keyframes urgent-shimmer-rose {
   0%, 100% {
-    box-shadow: 0 0 12px 1px rgba(244, 63, 94, 0.45), inset 0 0 8px 0 rgba(244, 63, 94, 0.15);
-    border-color: rgba(244, 63, 94, 0.9);
+    box-shadow: 0 0 14px 2px rgba(244, 63, 94, 0.5), inset 0 0 10px 1px rgba(244, 63, 94, 0.2);
+    border-color: rgba(251, 113, 133, 0.95);
+    filter: drop-shadow(0 0 4px rgba(244, 63, 94, 0.4));
   }
   50% {
-    box-shadow: 0 0 24px 4px rgba(244, 63, 94, 0.75), inset 0 0 14px 1px rgba(244, 63, 94, 0.3);
-    border-color: rgba(251, 113, 133, 1);
+    box-shadow: 0 0 28px 6px rgba(244, 63, 94, 0.85), inset 0 0 18px 3px rgba(244, 63, 94, 0.4);
+    border-color: rgba(254, 205, 211, 1);
+    filter: drop-shadow(0 0 8px rgba(251, 113, 133, 0.8));
   }
 }
 
 .glow-urgent-pendente {
-  animation: urgent-pulse-amber 2s infinite ease-in-out;
+  animation: urgent-shimmer-amber 1.8s infinite ease-in-out;
 }
 .glow-urgent-concluida {
-  animation: urgent-pulse-emerald 2s infinite ease-in-out;
+  animation: urgent-shimmer-emerald 1.8s infinite ease-in-out;
 }
 .glow-urgent-em_andamento {
-  animation: urgent-pulse-blue 2s infinite ease-in-out;
+  animation: urgent-shimmer-blue 1.8s infinite ease-in-out;
 }
 .glow-urgent-remarcada {
-  animation: urgent-pulse-purple 2s infinite ease-in-out;
+  animation: urgent-shimmer-purple 1.8s infinite ease-in-out;
 }
 .glow-urgent-nao_feita {
-  animation: urgent-pulse-rose 2s infinite ease-in-out;
+  animation: urgent-shimmer-rose 1.8s infinite ease-in-out;
 }
 
 @media print {

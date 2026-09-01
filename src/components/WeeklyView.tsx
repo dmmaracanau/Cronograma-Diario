@@ -23,6 +23,9 @@ interface WeeklyViewProps {
   onReplicateTask: (task: PoliceTask) => void;
   onSelectDayView: (date: string) => void;
   onMoveTask?: (taskId: string, targetDate: string, targetIndex?: number) => void;
+  isBatchMode?: boolean;
+  selectedBatchTaskIds?: string[];
+  onToggleSelectTask?: (taskId: string) => void;
 }
 
 export const WeeklyView: React.FC<WeeklyViewProps> = ({
@@ -36,8 +39,13 @@ export const WeeklyView: React.FC<WeeklyViewProps> = ({
   onReplicateTask,
   onSelectDayView,
   onMoveTask,
+  isBatchMode = false,
+  selectedBatchTaskIds = [],
+  onToggleSelectTask,
 }) => {
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
+
+  const selectedSet = useMemo(() => new Set(selectedBatchTaskIds), [selectedBatchTaskIds]);
 
   // Calculate the 7 days (Monday to Sunday) of the week containing selectedDate
   const weekDays = useMemo(() => {
@@ -205,13 +213,8 @@ export const WeeklyView: React.FC<WeeklyViewProps> = ({
           </div>
         </div>
 
-        {/* Drag & Drop Hint & Weekly Aggregate Metric Pills */}
+        {/* Weekly Aggregate Metric Pills */}
         <div className="flex items-center gap-2 flex-wrap text-xs">
-          <span className="text-[11px] text-slate-400 hidden xl:flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-lg border border-slate-800">
-            <GripVertical className="w-3 h-3 text-amber-400" />
-            <span>Arraste os cards para reorganizar ou mudar o dia</span>
-          </span>
-
           <span className="px-2.5 py-1 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 font-semibold">
             {weekStats.total} {weekStats.total === 1 ? 'procedimento' : 'procedimentos'}
           </span>
@@ -337,6 +340,9 @@ export const WeeklyView: React.FC<WeeklyViewProps> = ({
                       onQuickStatus={onQuickStatus}
                       onReplicate={onReplicateTask}
                       onDropOnTask={handleDropOnTask}
+                      isBatchMode={isBatchMode}
+                      isSelected={selectedSet.has(task.id)}
+                      onToggleSelect={onToggleSelectTask}
                     />
                   ))
                 )}
@@ -465,6 +471,9 @@ export const WeeklyView: React.FC<WeeklyViewProps> = ({
                     onQuickStatus={onQuickStatus}
                     onReplicate={onReplicateTask}
                     onDropOnTask={handleDropOnTask}
+                    isBatchMode={isBatchMode}
+                    isSelected={selectedSet.has(task.id)}
+                    onToggleSelect={onToggleSelectTask}
                   />
                 ))
               )}
@@ -511,6 +520,9 @@ export const WeeklyView: React.FC<WeeklyViewProps> = ({
                     onQuickStatus={onQuickStatus}
                     onReplicate={onReplicateTask}
                     onDropOnTask={handleDropOnTask}
+                    isBatchMode={isBatchMode}
+                    isSelected={selectedSet.has(task.id)}
+                    onToggleSelect={onToggleSelectTask}
                   />
                 ))
               )}

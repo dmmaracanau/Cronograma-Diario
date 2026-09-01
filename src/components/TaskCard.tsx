@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { 
-  Clock, 
   FolderCheck, 
   CheckCircle2, 
   CalendarClock, 
@@ -12,7 +11,8 @@ import {
   Copy,
   GripVertical,
   Flame,
-  AlertTriangle
+  AlertTriangle,
+  Check
 } from 'lucide-react';
 import { PoliceTask, PoliceTaskPriority, PoliceTaskStatus } from '../types';
 import { POLICE_TASK_CATEGORIES, STATUS_CONFIG } from '../data/policeTemplates';
@@ -25,6 +25,9 @@ interface TaskCardProps {
   onReplicate?: (task: PoliceTask) => void;
   compact?: boolean;
   onDropOnTask?: (sourceTaskId: string, targetTaskId: string) => void;
+  isBatchMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (taskId: string) => void;
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({
@@ -35,6 +38,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   onReplicate,
   compact = false,
   onDropOnTask,
+  isBatchMode = false,
+  isSelected = false,
+  onToggleSelect,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isDragTarget, setIsDragTarget] = useState(false);
@@ -218,30 +224,51 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   if (compact) {
     return (
       <div 
-        draggable
+        draggable={!isBatchMode}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`p-2.5 rounded-xl border transition-all duration-200 shadow-sm relative overflow-hidden group cursor-grab active:cursor-grabbing ${glowClasses} ${
+        onClick={() => {
+          if (isBatchMode && onToggleSelect) {
+            onToggleSelect(task.id);
+          }
+        }}
+        className={`p-2.5 rounded-xl border transition-all duration-200 shadow-sm relative overflow-hidden group ${
+          isBatchMode ? 'cursor-pointer hover:border-rose-400' : 'cursor-grab active:cursor-grabbing'
+        } ${glowClasses} ${
+          isSelected ? 'ring-2 ring-rose-500 bg-rose-950/30 border-rose-400 shadow-md shadow-rose-950/50' : ''
+        } ${
           isDragging ? 'opacity-40 scale-95 border-dashed border-amber-400' : ''
         } ${isDragTarget ? 'ring-2 ring-amber-400 bg-amber-500/10' : ''}`}
       >
         {/* Status Indicator Stripe */}
-        <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${statusTheme.indicator}`} />
+        <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${isSelected ? 'bg-rose-500' : statusTheme.indicator}`} />
 
         <div className="pl-1.5">
           <div className="flex items-center justify-between gap-1.5 mb-1.5">
             <div className="flex items-center gap-1.5 flex-wrap">
-              {/* Drag Handle Icon Indicator */}
-              <span className="text-slate-500 group-hover:text-slate-300 transition" title="Arraste para reordenar ou mover de dia">
-                <GripVertical className="w-3 h-3" />
-              </span>
-
-              {task.time && (
-                <span className="text-[10px] font-mono font-bold text-amber-400 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
-                  {task.time}
+              {/* Batch Checkbox or Drag Handle */}
+              {isBatchMode ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onToggleSelect) onToggleSelect(task.id);
+                  }}
+                  className={`w-4 h-4 rounded flex items-center justify-center transition border shrink-0 ${
+                    isSelected
+                      ? 'bg-rose-500 border-rose-400 text-white shadow-sm'
+                      : 'bg-slate-950 border-slate-700 hover:border-rose-400 text-transparent'
+                  }`}
+                  title={isSelected ? 'Desmarcar procedimento' : 'Selecionar procedimento'}
+                >
+                  <Check className="w-3 h-3 stroke-[3]" />
+                </button>
+              ) : (
+                <span className="text-slate-500 group-hover:text-slate-300 transition" title="Arraste para reordenar ou mover de dia">
+                  <GripVertical className="w-3 h-3" />
                 </span>
               )}
               
@@ -371,31 +398,52 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   // Full detailed card (used in Daily view or Tabela view)
   return (
     <div
-      draggable
+      draggable={!isBatchMode}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`p-4 rounded-2xl border transition-all duration-200 shadow-md relative overflow-hidden group cursor-grab active:cursor-grabbing ${glowClasses} ${
+      onClick={() => {
+        if (isBatchMode && onToggleSelect) {
+          onToggleSelect(task.id);
+        }
+      }}
+      className={`p-4 rounded-2xl border transition-all duration-200 shadow-md relative overflow-hidden group ${
+        isBatchMode ? 'cursor-pointer hover:border-rose-400' : 'cursor-grab active:cursor-grabbing'
+      } ${glowClasses} ${
+        isSelected ? 'ring-2 ring-rose-500 bg-rose-950/30 border-rose-400 shadow-lg shadow-rose-950/50' : ''
+      } ${
         isDragging ? 'opacity-40 scale-95 border-dashed border-amber-400' : ''
       } ${isDragTarget ? 'ring-2 ring-amber-400 bg-amber-500/10' : ''}`}
     >
       {/* Visual Status Strip */}
-      <div className={`absolute top-0 left-0 bottom-0 w-2 ${statusTheme.indicator}`} />
+      <div className={`absolute top-0 left-0 bottom-0 w-2 ${isSelected ? 'bg-rose-500' : statusTheme.indicator}`} />
 
       <div className="pl-2">
         {/* Top badges bar */}
         <div className="flex items-center justify-between gap-2 flex-wrap mb-2.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-slate-500 group-hover:text-slate-300 transition" title="Arraste para reordenar ou mover de dia">
-              <GripVertical className="w-4 h-4" />
-            </span>
-
-            {task.time && (
-              <span className="inline-flex items-center gap-1 text-xs font-mono font-bold text-amber-400 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">
-                <Clock className="w-3.5 h-3.5" />
-                {task.time}
+            {/* Batch Checkbox or Drag Handle */}
+            {isBatchMode ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onToggleSelect) onToggleSelect(task.id);
+                }}
+                className={`w-5 h-5 rounded-md flex items-center justify-center transition border shrink-0 ${
+                  isSelected
+                    ? 'bg-rose-500 border-rose-400 text-white shadow-sm'
+                    : 'bg-slate-950 border-slate-700 hover:border-rose-400 text-transparent'
+                }`}
+                title={isSelected ? 'Desmarcar procedimento' : 'Selecionar procedimento'}
+              >
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
+              </button>
+            ) : (
+              <span className="text-slate-500 group-hover:text-slate-300 transition" title="Arraste para reordenar ou mover de dia">
+                <GripVertical className="w-4 h-4" />
               </span>
             )}
 

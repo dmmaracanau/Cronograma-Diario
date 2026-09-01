@@ -16,7 +16,8 @@ import {
   FileCheck,
   TrendingUp,
   Bookmark,
-  Copy
+  Copy,
+  GripVertical
 } from 'lucide-react';
 import { PoliceTask, PoliceTaskCategory, PoliceTaskStatus } from '../types';
 import { TaskCard } from './TaskCard';
@@ -35,6 +36,9 @@ interface DailyViewProps {
   onPrintDocket: () => void;
   onSelectWeeklyView?: () => void;
   onMoveTask?: (taskId: string, targetDate: string, targetIndex?: number) => void;
+  isBatchMode?: boolean;
+  selectedBatchTaskIds?: string[];
+  onToggleSelectTask?: (taskId: string) => void;
 }
 
 export const DailyView: React.FC<DailyViewProps> = ({
@@ -50,6 +54,9 @@ export const DailyView: React.FC<DailyViewProps> = ({
   onPrintDocket,
   onSelectWeeklyView,
   onMoveTask,
+  isBatchMode = false,
+  selectedBatchTaskIds = [],
+  onToggleSelectTask,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('todos');
@@ -84,7 +91,7 @@ export const DailyView: React.FC<DailyViewProps> = ({
     }).format(dateObj);
   }, [selectedDate]);
 
-  // Tasks for the selected date
+  // Tasks strictly for the selected date
   const dayTasks = useMemo(() => {
     return tasks.filter((t) => t.date === selectedDate);
   }, [tasks, selectedDate]);
@@ -104,7 +111,7 @@ export const DailyView: React.FC<DailyViewProps> = ({
     });
   }, [dayTasks, searchQuery, selectedStatusFilter, selectedCategoryFilter]);
 
-  // Daily statistics
+  // Daily statistics - strictly for the selected day
   const stats = useMemo(() => {
     const total = dayTasks.length;
     const concluidas = dayTasks.filter((t) => t.status === 'concluida').length;
@@ -128,130 +135,107 @@ export const DailyView: React.FC<DailyViewProps> = ({
     onMoveTask(sourceTaskId, targetTask.date, targetIndex);
   };
 
+  const selectedSet = useMemo(() => new Set(selectedBatchTaskIds), [selectedBatchTaskIds]);
+
   return (
-    <div className="space-y-6">
-      {/* Date Navigation & Actions Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
-        {/* Date Selector */}
+    <div className="space-y-4">
+      {/* Daily View Header Bar (Matching Weekly View Header Style) */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800 shadow-sm">
+        {/* Navigation Controls */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center bg-slate-950 border border-slate-800 rounded-xl p-1 shadow-inner">
+          <div className="flex items-center bg-slate-950 rounded-xl p-1 border border-slate-800">
             <button
               onClick={handlePrevDay}
+              className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition"
               title="Dia Anterior"
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={handleToday}
-              className="px-3 py-1.5 text-xs font-bold text-amber-400 hover:bg-slate-800 rounded-lg transition"
+              className="px-3 py-1 text-xs font-semibold text-amber-400 hover:bg-slate-800 rounded-lg transition flex items-center gap-1.5"
             >
-              Hoje
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Hoje</span>
             </button>
             <button
               onClick={handleNextDay}
+              className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition"
               title="Próximo Dia"
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="relative">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-white font-bold capitalize">
+              {formattedDayTitle}
+            </span>
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white font-medium focus:outline-none focus:border-amber-400"
+              className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-0.5 text-xs text-slate-300 focus:outline-none focus:border-amber-400 cursor-pointer"
+              title="Escolher data específica"
             />
           </div>
-
-          <div className="text-sm sm:text-base font-bold text-white capitalize pl-2">
-            {formattedDayTitle}
-          </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          {onSelectWeeklyView && (
-            <button
-              onClick={onSelectWeeklyView}
-              className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
-              title="Voltar para a Visão Semanal"
-            >
-              <CalendarDays className="w-4 h-4 text-amber-400" />
-              <span>Visão Semanal</span>
-            </button>
+        {/* Daily Aggregate Metric Pills */}
+        <div className="flex items-center gap-2 flex-wrap text-xs">
+          <span className="px-2.5 py-1 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 font-semibold">
+            {stats.total} {stats.total === 1 ? 'procedimento' : 'procedimentos'}
+          </span>
+          <span className="px-2.5 py-1 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-300 font-bold">
+            {stats.concluidas} concl. ({stats.rate}%)
+          </span>
+          {stats.emAndamento > 0 && (
+            <span className="px-2 py-1 rounded-xl bg-blue-950/40 border border-blue-800/60 text-blue-300 font-bold">
+              {stats.emAndamento} andamento
+            </span>
+          )}
+          {stats.pendentes > 0 && (
+            <span className="px-2 py-1 rounded-xl bg-amber-950/40 border border-amber-800/60 text-amber-300 font-bold">
+              {stats.pendentes} pend.
+            </span>
+          )}
+          {stats.remarcadas > 0 && (
+            <span className="px-2 py-1 rounded-xl bg-purple-950/40 border border-purple-800/60 text-purple-300 font-bold">
+              {stats.remarcadas} remarc.
+            </span>
+          )}
+          {stats.naoFeitas > 0 && (
+            <span className="px-2 py-1 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-300 font-bold">
+              {stats.naoFeitas} ñ feitas
+            </span>
           )}
 
-          <button
-            onClick={onPrintDocket}
-            className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
-            title="Imprimir pauta de oitivas e expedientes do dia"
-          >
-            <Printer className="w-4 h-4 text-amber-400" />
-            <span>Imprimir Pauta</span>
-          </button>
-
-          <button
-            onClick={() => onChooseTask(selectedDate)}
-            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition shadow-lg shadow-amber-500/20"
-            title="Escolher procedimento existente no catálogo ou cadastrar novo modelo"
-          >
-            <Bookmark className="w-4 h-4 text-slate-950" />
-            <span>Escolher do Catálogo</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Daily Metrics Dashboard Ribbon */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl">
-          <div className="text-slate-400 text-xs font-medium">Total de Tarefas</div>
-          <div className="text-xl font-bold text-white mt-1">{stats.total}</div>
-          <div className="text-[10px] text-slate-500 mt-0.5">Procedimentos do dia</div>
-        </div>
-
-        <div className="bg-emerald-950/20 border border-emerald-800/40 p-3.5 rounded-2xl">
-          <div className="text-emerald-400 text-xs font-semibold flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            Concluídas
+          {/* Action Buttons in Header */}
+          <div className="flex items-center gap-1.5 ml-1">
+            <button
+              onClick={onPrintDocket}
+              className="p-1.5 bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 rounded-xl transition"
+              title="Imprimir Pauta de Oitivas e Expedientes do Dia"
+            >
+              <Printer className="w-3.5 h-3.5 text-amber-400" />
+            </button>
+            <button
+              onClick={() => onChooseTask(selectedDate)}
+              className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition shadow-sm"
+              title="Escolher do Catálogo"
+            >
+              <Bookmark className="w-3.5 h-3.5 text-slate-950" />
+              <span>Catálogo</span>
+            </button>
+            <button
+              onClick={() => onAddTask(selectedDate)}
+              className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 transition"
+              title="Criar Nova Tarefa"
+            >
+              <Plus className="w-3.5 h-3.5 text-amber-400" />
+              <span>Nova Tarefa</span>
+            </button>
           </div>
-          <div className="text-xl font-bold text-emerald-300 mt-1">{stats.concluidas}</div>
-          <div className="text-[10px] text-emerald-400/70 mt-0.5">{stats.rate}% de eficiência</div>
-        </div>
-
-        <div className="bg-blue-950/20 border border-blue-800/40 p-3.5 rounded-2xl">
-          <div className="text-blue-400 text-xs font-semibold flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5" />
-            Em Andamento
-          </div>
-          <div className="text-xl font-bold text-blue-300 mt-1">{stats.emAndamento}</div>
-          <div className="text-[10px] text-blue-400/70 mt-0.5">Em diligência</div>
-        </div>
-
-        <div className="bg-slate-800/30 border border-slate-700/40 p-3.5 rounded-2xl">
-          <div className="text-slate-400 text-xs font-semibold">Pendentes</div>
-          <div className="text-xl font-bold text-slate-200 mt-1">{stats.pendentes}</div>
-          <div className="text-[10px] text-slate-400/70 mt-0.5">Aguardando início</div>
-        </div>
-
-        <div className="bg-amber-950/20 border border-amber-800/40 p-3.5 rounded-2xl">
-          <div className="text-amber-400 text-xs font-semibold flex items-center gap-1">
-            <CalendarClock className="w-3.5 h-3.5" />
-            Remarcadas
-          </div>
-          <div className="text-xl font-bold text-amber-300 mt-1">{stats.remarcadas}</div>
-          <div className="text-[10px] text-amber-400/70 mt-0.5">Reagendadas</div>
-        </div>
-
-        <div className="bg-rose-950/20 border border-rose-800/40 p-3.5 rounded-2xl">
-          <div className="text-rose-400 text-xs font-semibold flex items-center gap-1">
-            <XCircle className="w-3.5 h-3.5" />
-            Não Feitas
-          </div>
-          <div className="text-xl font-bold text-rose-300 mt-1">{stats.naoFeitas}</div>
-          <div className="text-[10px] text-rose-400/70 mt-0.5">Com justificativa</div>
         </div>
       </div>
 
@@ -363,6 +347,10 @@ export const DailyView: React.FC<DailyViewProps> = ({
               onDelete={onDeleteTask}
               onQuickStatus={onQuickStatus}
               onReplicate={onReplicateTask}
+              onDropOnTask={handleDropOnTask}
+              isBatchMode={isBatchMode}
+              isSelected={selectedSet.has(task.id)}
+              onToggleSelect={onToggleSelectTask}
             />
           ))}
         </div>

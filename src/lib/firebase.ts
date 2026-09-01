@@ -8,7 +8,8 @@ import {
   User 
 } from 'firebase/auth';
 import { 
-  getFirestore, 
+  initializeFirestore,
+  setLogLevel,
   collection, 
   doc, 
   setDoc, 
@@ -18,7 +19,8 @@ import {
   query, 
   where, 
   onSnapshot, 
-  serverTimestamp 
+  serverTimestamp,
+  writeBatch
 } from 'firebase/firestore';
 import firebaseConfigData from '../../firebase-applet-config.json';
 import { PoliceTask, UserProfile, TaskTemplate } from '../types';
@@ -38,10 +40,20 @@ export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfi
 // Initialize Firebase Auth
 export const auth = getAuth(app);
 
-// Initialize Firestore
-export const db = firebaseConfigData.firestoreDatabaseId 
-  ? getFirestore(app, firebaseConfigData.firestoreDatabaseId)
-  : getFirestore(app);
+// Suppress transient internal WebChannel transport connection logs
+try {
+  setLogLevel('silent');
+} catch (_) {}
+
+// Initialize Firestore with long-polling for stable connection across proxies/iframes
+export const db = initializeFirestore(
+  app,
+  {
+    experimentalForceLongPolling: true,
+    experimentalAutoDetectLongPolling: false,
+  },
+  firebaseConfigData.firestoreDatabaseId || '(default)'
+);
 
 // Unified App User Interface
 export interface AppUser {
@@ -223,7 +235,21 @@ export function subscribeToUserProfile(userId: string, onUpdate: (profile: UserP
 }
 
 // Real-time Police Tasks Firestore Methods
+const TASKS_CACHE_PREFIX = 'pcce_tasks_cache_';
+const TEMPLATES_CACHE_PREFIX = 'pcce_templates_cache_';
+
 export function subscribeToTasks(userId: string, onUpdate: (tasks: PoliceTask[]) => void) {
+  // Emit locally cached data immediately if available
+  try {
+    const cached = localStorage.getItem(TASKS_CACHE_PREFIX + userId);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        onUpdate(parsed);
+      }
+    }
+  } catch (_) {}
+
   const tasksRef = collection(db, 'tasks');
   const q = query(tasksRef, where('userId', '==', userId));
 
@@ -266,9 +292,20 @@ export function subscribeToTasks(userId: string, onUpdate: (tasks: PoliceTask[])
       return (a.time || '99:99').localeCompare(b.time || '99:99');
     });
 
+    try {
+      localStorage.setItem(TASKS_CACHE_PREFIX + userId, JSON.stringify(tasks));
+    } catch (_) {}
+
     onUpdate(tasks);
   }, (error) => {
-    console.error('Real-time task synchronization error:', error);
+    console.warn('Real-time task synchronization offline or reconnecting:', error?.message || error);
+    // On error, try to serve cache
+    try {
+      const cached = localStorage.getItem(TASKS_CACHE_PREFIX + userId);
+      if (cached) {
+        onUpdate(JSON.parse(cached));
+      }
+    } catch (_) {}
   });
 }
 
@@ -314,6 +351,30 @@ export async function updatePoliceTask(taskId: string, updates: Partial<PoliceTa
 export async function deletePoliceTask(taskId: string): Promise<void> {
   const taskRef = doc(db, 'tasks', taskId);
   await deleteDoc(taskRef);
+}
+
+export async function batchDeletePoliceTasks(taskIds: string[]): Promise<void> {
+  if (!taskIds || taskIds.length === 0) return;
+  const batch = writeBatch(db);
+  taskIds.forEach((id) => {
+    const taskRef = doc(db, 'tasks', id);
+    batch.delete(taskRef);
+  });
+  await batch.commit();
+}
+
+export async function batchUpdatePoliceTasks(taskIds: string[], updates: Partial<PoliceTask>): Promise<void> {
+  if (!taskIds || taskIds.length === 0) return;
+  const batch = writeBatch(db);
+  const cleanUpdates = sanitizeForFirestore({
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  });
+  taskIds.forEach((id) => {
+    const taskRef = doc(db, 'tasks', id);
+    batch.update(taskRef, cleanUpdates);
+  });
+  await batch.commit();
 }
 
 export async function duplicateTaskToDate(task: PoliceTask, newDate: string): Promise<void> {
@@ -380,6 +441,17 @@ export async function replicateTaskToDates(
 // ==========================================
 
 export function subscribeToTaskTemplates(userId: string, onUpdate: (templates: TaskTemplate[]) => void) {
+  // Emit locally cached data immediately if available
+  try {
+    const cached = localStorage.getItem(TEMPLATES_CACHE_PREFIX + userId);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        onUpdate(parsed);
+      }
+    }
+  } catch (_) {}
+
   const templatesRef = collection(db, 'task_templates');
   const q = query(templatesRef, where('userId', '==', userId));
 
@@ -409,9 +481,20 @@ export function subscribeToTaskTemplates(userId: string, onUpdate: (templates: T
       if (!a.isFavorite && b.isFavorite) return 1;
       return a.title.localeCompare(b.title);
     });
+
+    try {
+      localStorage.setItem(TEMPLATES_CACHE_PREFIX + userId, JSON.stringify(templates));
+    } catch (_) {}
+
     onUpdate(templates);
   }, (error) => {
-    console.error('Error subscribing to task templates:', error);
+    console.warn('Task templates synchronization offline or reconnecting:', error?.message || error);
+    try {
+      const cached = localStorage.getItem(TEMPLATES_CACHE_PREFIX + userId);
+      if (cached) {
+        onUpdate(JSON.parse(cached));
+      }
+    } catch (_) {}
   });
 }
 

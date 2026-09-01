@@ -58,7 +58,7 @@ export const StatusChangeModal: React.FC<StatusChangeModalProps> = ({
         updates.rescheduledTo = rescheduledDate;
         updates.reason = reason.trim() || 'Remarcada pelo servidor responsável';
       } else if (targetStatus === 'nao_feita') {
-        updates.reason = reason.trim() || 'Não realizada no expediente';
+        updates.reason = reason.trim() || undefined;
       }
 
       await onConfirm(task.id, updates);
@@ -151,14 +151,13 @@ export const StatusChangeModal: React.FC<StatusChangeModalProps> = ({
           {targetStatus === 'nao_feita' && (
             <div>
               <label className="block font-semibold text-slate-300 mb-1">
-                Justificativa / Motivo do Não Cumprimento *
+                Justificativa / Motivo do Não Cumprimento (Opcional)
               </label>
               <textarea
                 rows={3}
-                required
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="Ex: Suspeito ausente no endereço / Vítima desistiu da representação / Ausência de meios operacionais..."
+                placeholder="Opcional: Suspeito ausente no endereço / Vítima desistiu / Diligência frustrada... (pode deixar em branco)"
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-400 resize-none"
               />
             </div>
