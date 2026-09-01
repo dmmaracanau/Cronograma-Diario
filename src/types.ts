@@ -62,6 +62,7 @@ export interface UserProfile {
   role: string; // Delegado(a), Inspetor(a), Escrivão/Escrivã, Agente, Operacional, Estagiário
   department: string; // Cartório 1, Cartório 2, Setor de Investigações (GIE), Plantão, Chefia, Expediente
   createdAt: string;
+  templatesSeeded?: boolean;
 }
 
 export type ViewMode = 'diario' | 'semanal' | 'mensal' | 'tabela' | 'relatorios';

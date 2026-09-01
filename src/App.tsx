@@ -7,6 +7,7 @@ import {
   subscribeToTaskTemplates,
   addTaskTemplate,
   deleteTaskTemplate,
+  deleteAllTaskTemplates,
   replicateTaskToDates,
   addPoliceTask,
   updatePoliceTask,
@@ -111,8 +112,14 @@ export default function App() {
     });
 
     const unsubscribeTemplates = subscribeToTaskTemplates(user.uid, async (syncedTemplates) => {
-      // If user has no templates in DB yet, seed with standard PCCE catalog templates
-      if (syncedTemplates.length === 0) {
+      setTemplates(syncedTemplates);
+
+      // Check if this user account has ever initialized default templates
+      const seedKey = `pcce_catalog_initialized_${user.uid}`;
+      const hasSeededLocally = localStorage.getItem(seedKey);
+
+      if (!hasSeededLocally && syncedTemplates.length === 0) {
+        localStorage.setItem(seedKey, 'true');
         for (const t of DEFAULT_TASK_TEMPLATES) {
           await addTaskTemplate({
             userId: user.uid,
@@ -124,8 +131,8 @@ export default function App() {
             time: '09:00',
           });
         }
-      } else {
-        setTemplates(syncedTemplates);
+      } else if (!hasSeededLocally && syncedTemplates.length > 0) {
+        localStorage.setItem(seedKey, 'true');
       }
     });
 
@@ -447,6 +454,24 @@ export default function App() {
         }}
         onDeleteTemplate={async (templateId) => {
           await deleteTaskTemplate(templateId);
+        }}
+        onRestoreDefaults={async () => {
+          if (!user) return;
+          for (const t of DEFAULT_TASK_TEMPLATES) {
+            await addTaskTemplate({
+              userId: user.uid,
+              title: t.title,
+              procedureNumber: t.procedureNumber || '',
+              category: t.category,
+              priority: t.priority,
+              description: t.description || '',
+              time: '09:00',
+            });
+          }
+        }}
+        onDeleteAllTemplates={async () => {
+          if (!user) return;
+          await deleteAllTaskTemplates(user.uid);
         }}
       />
 

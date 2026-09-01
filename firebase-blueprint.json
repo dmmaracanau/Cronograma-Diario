@@ -38,6 +38,25 @@
         "updatedAt": { "type": "string" }
       },
       "required": ["userId", "title", "date", "status"]
+    },
+    "TaskTemplate": {
+      "title": "TaskTemplate",
+      "description": "Modelo de tarefa ou procedimento padrão salvo no catálogo",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "procedureNumber": { "type": "string" },
+        "category": { "type": "string" },
+        "priority": { "type": "string" },
+        "time": { "type": "string" },
+        "description": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "title", "category"]
     }
   },
   "firestore": {
@@ -48,6 +67,10 @@
     "/tasks/{taskId}": {
       "entity": "PoliceTask",
       "description": "Coleção de tarefas do cronograma diário"
+    },
+    "/task_templates/{templateId}": {
+      "entity": "TaskTemplate",
+      "description": "Catálogo de modelos de tarefas e procedimentos salvos"
     }
   }
 }

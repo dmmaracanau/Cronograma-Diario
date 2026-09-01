@@ -439,3 +439,21 @@ export async function deleteTaskTemplate(templateId: string): Promise<void> {
   const templateRef = doc(db, 'task_templates', templateId);
   await deleteDoc(templateRef);
 }
+
+export async function deleteAllTaskTemplates(userId: string): Promise<void> {
+  const templatesRef = collection(db, 'task_templates');
+  const q = query(templatesRef, where('userId', '==', userId));
+  const snapshot = await new Promise<any>((resolve, reject) => {
+    const unsub = onSnapshot(q, (snap) => {
+      unsub();
+      resolve(snap);
+    }, reject);
+  });
+
+  const deletePromises: Promise<void>[] = [];
+  snapshot.forEach((docSnap: any) => {
+    deletePromises.push(deleteDoc(doc(db, 'task_templates', docSnap.id)));
+  });
+
+  await Promise.all(deletePromises);
+}
